@@ -50,7 +50,7 @@ function studied(){return Object.entries(state.progress).filter(([,p])=>p.attemp
 function dueLessons(){return allLessons().filter(l=>pFor(l.id).attempts&&pFor(l.id).due<=now());}
 function difficult(){return allLessons().filter(l=>{const p=pFor(l.id);return p.attempts&&(p.lapses>0||p.hints>0)&&Math.max(p.streak,p.oralStreak||0)<2;});}
 function status(l){const p=pFor(l.id);if(!p.attempts)return '尚未练习';if((p.oralDays||[]).length>=2&&p.oralStreak>=2)return '隔天能说出（自评）';if(p.recallDays.length>=2&&p.streak>=2)return '隔天也能想起';if(p.oralStreak)return '已说出（自评）';if(p.streak)return '本次独立想起';return '还需提示';}
-function nav(p){if(page==='practice'){touchTimer();save();}if(p==='practice'&&state.active){state.active.lastTick=now();save();}page=p;render();window.scrollTo({top:0,behavior:'instant'});}
+function nav(p){if(p==='quiz'&&!window.ZH_LEXICON)ensureZh();if(page==='practice'){touchTimer();save();}if(p==='practice'&&state.active){state.active.lastTick=now();save();}page=p;render();window.scrollTo({top:0,behavior:'instant'});}
 const navItems=[['home','home','开始学习'],['library','book','查词与搭配'],['scenes','grid','场景表达'],['difficult','star','还不会的'],['settings','settings','设置']];
 function render(){
  const title=navItems.find(x=>x[0]===page)?.[2]||({practice:'专注练习',month:'单词练习',review:'复习',quiz:'选择题',exams:'听读替换',history:'学习记录',result:'本次练习'}[page]||'学习');
@@ -203,9 +203,51 @@ document.addEventListener('click',e=>{
  if(b.id==='export-data'){exportData();return;}
  if(b.id==='import-data'){$('#import-file').click();return;}
 });
+
+// ── 按需加载大体积数据（国际线路慢，首屏只加载 core）────────────────────────
+let notesLoading = false, zhLoading = false;
+const notesQueue = [], zhQueue = [];
+function injectScript(src, done){
+ // 测试环境或极简 DOM 下没有 createElement：直接跳过，不影响核心功能
+ if (typeof document === 'undefined' || !document.createElement || !document.head) { if (done) done(); return; }
+ const s = document.createElement('script');
+ s.src = src; s.async = true;
+ s.onload = done; s.onerror = done;
+ document.head.appendChild(s);
+}
+function ensureNotes(cb){
+ if (window.LEXICON_NOTES) { if (cb) cb(); return; }
+ if (cb) notesQueue.push(cb);
+ if (notesLoading) return;
+ notesLoading = true;
+ injectScript('lexicon-notes.js', () => {
+  notesLoading = false;
+  const q = notesQueue.splice(0); q.forEach(f => { try { f(); } catch (e) {} });
+  render();
+ });
+}
+function ensureZh(cb){
+ if (window.ZH_LEXICON) { if (cb) cb(); return; }
+ if (cb) zhQueue.push(cb);
+ if (zhLoading) return;
+ zhLoading = true;
+ injectScript('zh-lexicon.js', () => {
+  zhLoading = false;
+  const q = zhQueue.splice(0); q.forEach(f => { try { f(); } catch (e) {} });
+  render();
+ });
+}
+
 $('#import-file').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;if(f.size>10*1024*1024){toast('备份文件过大，请选择小于 10MB 的 JSON 备份。');return;}try{const imported=validate(JSON.parse(await f.text()));showModal(modalHead('导入这份学习备份？')+`<p>备份中有 ${Object.keys(imported.progress).length} 条搭配进度、${imported.custom.length} 条个人表达、${imported.sessions.length} 次练习记录。</p><div class="notice warning">导入将替换当前设备的学习进度。建议先导出当前备份。</div><div class="button-row"><button class="secondary" id="backup-before">先导出当前备份</button><button class="primary" id="confirm-import">替换并导入</button></div>`);$('#backup-before').onclick=exportData;$('#confirm-import').onclick=()=>{state=imported;save();taskUI={hint:0,feedback:null,input:''};$('#modal').close();nav('home');toast('备份已导入。');};}catch{toast('无法读取这份备份，请选择词间导出的有效 JSON 文件。');}};
 // Inserted inside the application closure by upgrade-app.py.
-const lexical = word => window.LEXICON[word]||{meaning:'词形待核对',definition:'',phrases:[],examples:[],scenes:[]};
+function mergeLexical(word){
+ const c=(window.LEXICON_CORE||{})[word],n=(window.LEXICON_NOTES||{})[word];
+ if(!c&&!n)return {meaning:'词形待核对',definition:'',phrases:[],examples:[],scenes:[],domains:[]};
+ const cc=c||{},nn=n||{};
+ return {meaning:cc.m||'',forms:cc.f||'',rank:cc.r,phonetic:cc.p||'',
+  definition:nn.d||'',phrases:nn.ph||[],examples:nn.ex||[],domains:nn.dm||[],scenes:nn.sc||[],
+  specialistMeaning:nn.sm||'',learner:nn.l};}
+const lexical = word => mergeLexical(word);
 const orderedWords=[...window.CATALOG].sort((a,b)=>(lexical(a.word).rank||999999)-(lexical(b.word).rank||999999)||a.word.localeCompare(b.word)).map(c=>c.word);
 const monthWords=d=>orderedWords.slice(Math.floor((d-1)*orderedWords.length/30),Math.floor(d*orderedWords.length/30));
 function monthData(){if(!state.month)state.month={started:day(),reviewed:{},active:null};return state.month;}
@@ -461,7 +503,7 @@ function explainHtml(c,chosen){
 function noteQuiz(word,kind,ok){const q=quizMap(),r=q[word]||(q[word]={see:{ok:0,bad:0},use:{ok:0,bad:0}});
  r[kind]=r[kind]||{ok:0,bad:0};r[kind][ok?'ok':'bad']++;r.last=day();}
 
-function beginQuiz(type){const pool=quizPool(type);
+function beginQuiz(type){if(!window.ZH_LEXICON)ensureZh();const pool=quizPool(type);
  if(!pool.length){toast('这个方向暂时没有可用题目。');return;}
  const queue=shuffleList(pool).slice(0,20);
  state.quiz={type,queue,i:0,current:null,right:0,wrong:0,answered:null,finished:false};
@@ -586,4 +628,5 @@ function situationSection(){return `<div class="section-head"><h2>我现在想�
 function situationDialog(id,flipped=false){const k=window.SITUATIONS.find(k=>k.id===id);if(!k)return;const ls=k.phrases.map(p=>allLessons().find(l=>l.phrase===p)).filter(Boolean);showModal(modalHead(esc(k.goal))+`<span class="badge">${esc(k.scene)}</span><p style="margin:20px 0">${esc(k.task)}</p><div class="intent-prompts">${ls.map((l,i)=>`<div><small>你想表达 ${i+1}</small><h3>${esc(l.phraseZh)}</h3>${flipped?'<div class="example"><div class="en">'+esc(l.phrase)+'</div><div class="en">'+esc(l.sentence)+'</div><div class="zh">'+esc(l.zh)+'</div></div><p class="meaning">用法提示：'+esc(l.tip)+'</p>'+(l.word==='apply'?'<a class="text-btn" href="https://dictionary.cambridge.org/dictionary/english/apply" target="_blank" rel="noopener noreferrer">核对词典用法 ↗</a>':''):'<p class="meaning">先用你自己的英语说一说。</p>'}</div>`).join('')}</div><div class="button-row">${!flipped?`<button class="primary" data-situation-reveal="${attr(k.id)}">想好了，看看可以怎么说</button>`:`<button class="primary" data-situation-practice="${attr(k.id)}">藏起英文，练这一组</button><button class="secondary" data-situation="${attr(k.id)}">再次藏起表达</button>`}</div>`);}
 
 render();
+ensureNotes();
 })();

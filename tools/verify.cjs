@@ -11,9 +11,11 @@ function boot(){
   const nodes=new Map(['#app','#toast','#modal','#import-file'].map(s=>[s,{innerHTML:'',textContent:'',classList:{add(){},remove(){}},open:false,showModal(){this.open=true;},close(){this.open=false;}}]));
   const ctx={window:{scrollTo(){}},document:{querySelector:s=>nodes.get(s)||null,addEventListener(){}},localStorage:{getItem:k=>disk.get(k)||null,setItem:(k,v)=>disk.set(k,v)},Date:TestDate,console,setTimeout:()=>1,clearTimeout(){},Map,Set,Blob,URL,FormData:class{}};
   vm.createContext(ctx);
-  for(const name of ['catalog.js','enrichment.js','situations.js','lessons.js','book-lessons.js','source-materials.js','exam-lessons.js'])vm.runInContext(fs.readFileSync(path.join(SITE,name),'utf8'),ctx);
+  for(const name of ['catalog.js','lexicon-core.js','lexicon-notes.js','situations.js','lessons.js','book-lessons.js','source-materials.js','exam-lessons.js'])vm.runInContext(fs.readFileSync(path.join(SITE,name),'utf8'),ctx);
+
+  vm.runInContext("(function(){var C=window.LEXICON_CORE||{},N=window.LEXICON_NOTES||{},out={},w,ks=Object.keys(C);for(w in N){if(!(w in C))ks.push(w)};for(var i=0;i<ks.length;i++){w=ks[i];var c=C[w]||{},n=N[w]||{};out[w]={meaning:c.m||'',forms:c.f||'',rank:c.r,phonetic:c.p||'',definition:n.d||'',phrases:n.ph||[],examples:n.ex||[],domains:n.dm||[],scenes:n.sc||[],specialistMeaning:n.sm||'',learner:n.l}}window.LEXICON=out})()", ctx);
   let source=fs.readFileSync(path.join(SITE,'app.js'),'utf8');
-  source=source.replace(/render\(\);\s*\}\)\(\);\s*$/,`window.test={continuePractice,result,monthPage,getState:()=>state,getUI:()=>taskUI,start:(...args)=>{state.active=null;start(...args);},advance,makeTask,pFor,dueLessons,validate,status,filteredLibrary,switchLibraryTab,getLib:()=>lib,dictionaryHtml,meaningPrompt,beginCatalog,oralPractice,monthWords,monthData,beginMonth,monthPractice,rateMonth,setHint:n=>{taskUI.hint=n;persistUI();},setFeedback:()=>{taskUI.feedback={correct:true};persistUI();},nav,esc};render();\n})();`);
+  source=source.replace(/render\(\);\s*(?:ensureNotes\(\);\s*)?(?:ensureZh\(\);\s*)?\}\)\(\);\s*$/,`window.test={continuePractice,result,monthPage,getState:()=>state,getUI:()=>taskUI,start:(...args)=>{state.active=null;start(...args);},advance,makeTask,pFor,dueLessons,validate,status,filteredLibrary,switchLibraryTab,getLib:()=>lib,dictionaryHtml,meaningPrompt,beginCatalog,oralPractice,monthWords,monthData,beginMonth,monthPractice,rateMonth,setHint:n=>{taskUI.hint=n;persistUI();},setFeedback:()=>{taskUI.feedback={correct:true};persistUI();},nav,esc};render();\n})();`);
   vm.runInContext(source,ctx);
   return {t:ctx.window.test,window:ctx.window,nodes};
 }

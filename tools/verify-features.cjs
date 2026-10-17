@@ -20,13 +20,24 @@ function boot() {
     Date, console, setTimeout: () => 1, clearTimeout() {}, Map, Set, Blob, URL, FormData: class {},
   };
   vm.createContext(ctx);
-  for (const name of ['catalog.js', 'enrichment.js', 'zh-lexicon.js', 'situations.js', 'lessons.js', 'book-lessons.js', 'source-materials.js', 'exam-lessons.js'])
+  for (const name of ['catalog.js', 'lexicon-core.js', 'lexicon-notes.js', 'zh-lexicon.js', 'situations.js', 'lessons.js', 'book-lessons.js', 'source-materials.js', 'exam-lessons.js'])
     vm.runInContext(fs.readFileSync(path.join(SITE, name), 'utf8'), ctx);
 
+  // 拆分后的数据合并成 window.LEXICON（仅为兼容原有断言）
+vm.runInContext(`(function(){
+ const C=window.LEXICON_CORE||{},N=window.LEXICON_NOTES||{},out={};
+ for(const w of new Set([...Object.keys(C),...Object.keys(N)])){
+  const c=C[w]||{},n=N[w]||{};
+  out[w]={meaning:c.m||'',forms:c.f||'',rank:c.r,phonetic:c.p||'',definition:n.d||'',
+   phrases:n.ph||[],examples:n.ex||[],domains:n.dm||[],scenes:n.sc||[],
+   specialistMeaning:n.sm||'',learner:n.l};
+ }
+ window.LEXICON=out;
+})();`, ctx);
   let source = fs.readFileSync(path.join(SITE, 'app.js'), 'utf8');
   const exp = `window.test={skipWord,unskipWord,beginReview,reviewPool,vocabStats,reviewPage,isSkipped,skippedMap,quizMap,monthData,monthPractice,beginCatalog,beginMonth,nav,render,orderedWords,beginQuiz,makeQuestion,answerQuiz,nextQuiz,endQuiz,quizPool,firstMeaning,shortMeaning,posOf,formIn,formsOf,quizPage,practicedWords,skippedCount,unskipAll,includeSkipped,bestExample,explainHtml,usablePhrases,zhOf,zhExamples,zhHook,zhExplain,getState:()=>state,ZH:()=>window.ZH_LEXICON};render();\n})();`;
-  if (!/render\(\);\s*\}\)\(\);\s*$/.test(source)) throw new Error('app.js 尾部结构不符合预期');
-  source = source.replace(/render\(\);\s*\}\)\(\);\s*$/, exp);
+  if (!/render\(\);\s*(?:ensureNotes\(\);\s*)?(?:ensureZh\(\);\s*)?\}\)\(\);\s*$/.test(source)) throw new Error('app.js 尾部结构不符合预期');
+  source = source.replace(/render\(\);\s*(?:ensureNotes\(\);\s*)?(?:ensureZh\(\);\s*)?\}\)\(\);\s*$/, exp);
   vm.runInContext(source, ctx);
   return { t: ctx.window.test, nodes };
 }
