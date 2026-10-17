@@ -24,7 +24,7 @@ function boot() {
     vm.runInContext(fs.readFileSync(path.join(SITE, name), 'utf8'), ctx);
 
   let source = fs.readFileSync(path.join(SITE, 'app.js'), 'utf8');
-  const exp = `window.test={skipWord,unskipWord,beginReview,reviewPool,vocabStats,reviewPage,isSkipped,skippedMap,quizMap,monthData,monthPractice,beginCatalog,beginMonth,nav,render,orderedWords,beginQuiz,makeQuestion,answerQuiz,nextQuiz,endQuiz,quizPool,firstMeaning,shortMeaning,posOf,formIn,formsOf,quizPage,practicedWords,bestExample,explainHtml,usablePhrases,zhOf,zhExamples,zhHook,zhExplain,getState:()=>state,ZH:()=>window.ZH_LEXICON};render();\n})();`;
+  const exp = `window.test={skipWord,unskipWord,beginReview,reviewPool,vocabStats,reviewPage,isSkipped,skippedMap,quizMap,monthData,monthPractice,beginCatalog,beginMonth,nav,render,orderedWords,beginQuiz,makeQuestion,answerQuiz,nextQuiz,endQuiz,quizPool,firstMeaning,shortMeaning,posOf,formIn,formsOf,quizPage,practicedWords,skippedCount,unskipAll,includeSkipped,bestExample,explainHtml,usablePhrases,zhOf,zhExamples,zhHook,zhExplain,getState:()=>state,ZH:()=>window.ZH_LEXICON};render();\n})();`;
   if (!/render\(\);\s*\}\)\(\);\s*$/.test(source)) throw new Error('app.js 尾部结构不符合预期');
   source = source.replace(/render\(\);\s*\}\)\(\);\s*$/, exp);
   vm.runInContext(source, ctx);
@@ -216,6 +216,36 @@ ok('填空题优先使用双语例句', () => {
   const q = t.makeQuestion('cloze', w2);
   assert.equal(q.type, 'cloze');
   assert.ok(q.zh, '双语例句的题目应带中文译文');
+});
+
+ok('默认排除已跳过的词，打开开关后纳入', () => {
+  const w = practised[4];
+  t.skippedMap()[w] = { at: '2026-10-17' };
+  assert.ok(!t.practicedWords().includes(w), '默认应排除');
+  t.getState().quizOpt = { includeSkipped: true };
+  assert.ok(t.practicedWords().includes(w), '开启后应纳入');
+  t.getState().quizOpt = { includeSkipped: false };
+  assert.ok(!t.practicedWords().includes(w), '关闭后应再次排除');
+  t.unskipAll();
+  assert.equal(t.skippedCount(), 0);
+  assert.ok(t.practicedWords().includes(w));
+});
+ok('选择题页文案已求值（不出现 ${ 字面量）', () => {
+  t.endQuiz();
+  t.nav('quiz');
+  const html = nodes.get('#app').innerHTML;
+  assert.ok(!html.includes('${'), '页面不应出现未求值的模板占位符');
+  assert.ok(/练过\s*\d+\s*个词/.test(html), '应显示具体词数');
+});
+ok('已覆盖不会小于会用', () => {
+  const v = t.vocabStats();
+  assert.ok(v.covered >= v.productive, `covered=${v.covered} productive=${v.productive}`);
+  assert.ok(v.recognize >= v.productive, '认识应 >= 会用');
+});
+ok('原有点击流程未受影响', () => {
+  t.beginQuiz('meaning');
+  assert.ok(t.getState().quiz && t.getState().quiz.current);
+  t.endQuiz();
 });
 
 ok('原有页面无回归', () => {

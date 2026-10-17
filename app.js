@@ -192,6 +192,8 @@ document.addEventListener('click',e=>{
  if(b.id==='pause-save'){$('#modal').close();nav('home');return;}
  if(b.id==='end-session'){$('#modal').close();if(taskUI.feedback&&typeof taskUI.feedback.correct==='boolean'){record(taskUI.feedback.correct);state.active.index++;}taskUI={hint:0,feedback:null,input:''};finish();return;}
  if(b.dataset.reviewStart){beginReview(b.dataset.reviewStart);return;}
+ if(b.hasAttribute('data-quiz-toggle-skip')){state.quizOpt={...(state.quizOpt||{}),includeSkipped:!includeSkipped()};save();render();return;}
+ if(b.hasAttribute('data-unskip-all')){unskipAll();return;}
  if(b.dataset.quizStart){beginQuiz(b.dataset.quizStart);return;}
  if(b.hasAttribute('data-quiz-answer')){answerQuiz(+b.dataset.quizAnswer);return;}
  if(b.id==='quiz-next'){nextQuiz();return;}
@@ -336,10 +338,14 @@ function practicedSet(){
  return set;}
 
 const canonMap=new Map(window.CATALOG.map(c=>[c.word.toLowerCase(),c.word]));
-function practicedWords(){
+function includeSkipped(){return !!(state.quizOpt&&state.quizOpt.includeSkipped);}
+function practicedWords(forceInclude){
+ const inc=forceInclude===undefined?includeSkipped():!!forceInclude;
  const out=[];
- for(const low of practicedSet()){const w=canonMap.get(low);if(w&&!isSkipped(w))out.push(w);}
+ for(const low of practicedSet()){const w=canonMap.get(low);if(!w)continue;if(!inc&&isSkipped(w))continue;out.push(w);}
  return out;}
+function skippedCount(){return Object.keys(state.month?.skipped||{}).length;}
+function unskipAll(){const m=monthData();m.skipped={};save();toast('已恢复全部跳过的词。');render();}
 
 function quizPool(type){
  const words=practicedWords();
@@ -475,7 +481,7 @@ function vocabStats(){const m=state.month||{},rev=m.reviewed||{},sk=m.skipped||{
  for(const l of allLessons()){const p=pFor(l.id);if(!p.attempts)continue;
   const k=String(l.word||'').toLowerCase(),s=Math.max(p.streak||0,p.oralStreak||0);
   if(!best.has(k)||best.get(k)<s)best.set(k,s);}
- let recog=0,prod=0;const levels={skip:0,solid:0,recall:0,faint:0,tried:0,seeOk:0,clozeOk:0};
+ let recog=0,prod=0,covered=0;const levels={skip:0,solid:0,recall:0,faint:0,tried:0,seeOk:0,clozeOk:0};
  for(const c of window.CATALOG){const w=c.word,r=rev[w],q=qz[w]||{};
   let recallW=0;
   if(sk[w])recallW=1;
@@ -488,14 +494,14 @@ function vocabStats(){const m=state.month||{},rev=m.reviewed||{},sk=m.skipped||{
   let recogW=recallW;
   if(see.ok>0)recogW=Math.max(recogW,see.ok>=2?1:0.9);
   else if(!see.ok&&see.bad>0&&!recogW)recogW=0.2;
-  prod+=recallW;recog+=recogW;
+  prod+=recallW;recog+=recogW;if(recallW>0||recogW>0||r||sk[w])covered++;
   if(sk[w])levels.skip++;
   else if(r&&r.rating===2&&(r.passes||1)>=2)levels.solid++;
   else if(r&&r.rating===2)levels.recall++;
   else if(r)levels.faint++;
   if(use.ok)levels.clozeOk++;
   if(see.ok)levels.seeOk++;}
- return {recognize:Math.round(recog),productive:Math.round(prod),...levels,covered:Object.keys(rev).length+levels.skip};}
+ return {recognize:Math.round(recog),productive:Math.round(prod),...levels,covered:covered};}
 
 function vocabCard(){const v=vocabStats();
  return `<section class="setting-card"><h2>我的词汇量估算</h2><div class="coverage-grid"><div><b>${v.recognize}</b><span>认识 ≈（看英文能想起中文）</span></div><div><b>${v.productive}</b><span>会用 ≈（看中文能想出英文）</span></div><div><b>${v.covered}</b><span>练过的词条</span></div></div><p>认识量总是大于或等于会用量：能产出就一定认得，反过来不成立。按表现加权——跳过或连续两次独立想起按 1 个词计；只独立想起一次按 0.7；还不会按 0.25；场景里练过按 0.5–0.8；选择题答对会另加分。没有练过的词不计入。</p><p class="meaning">这是根据练习表现做的估算，不是考试评分。</p></section>`;}
@@ -514,16 +520,16 @@ function reviewPage(){const m=monthData(),sk=m.skipped||{},v=vocabStats();
 function quizPage(){const q=state.quiz,v=vocabStats();
  const practiced=practicedWords();
  const nMeaning=quizPool('meaning').length,nCloze=quizPool('cloze').length,nPhrase=quizPool('phrase').length;
- const totalPracticed=practiced.length;
+ const totalPracticed=practiced.length,skCount=skippedCount();
 
  if(!q||q.finished||!q.current){
   const done=q&&q.finished;
   if(!totalPracticed)return intro('CHOOSE, DO NOT SPELL','选一选，不用拼写。','题目只从你练过的词里出，不会考没背过的内容。')
    +`<section class="setting-card"><h2>还没有练过的词</h2><p>先去「开始学习」里练一小段——题目的题库只取你已经背过的词，这样每道题都能接上你正在学的内容。</p><div class="button-row"><button class="primary" data-nav="home">去练一组 ${icon('arrow')}</button><button class="secondary" data-nav="review">看看复习页</button></div></section>`
    +vocabCard();
-  return intro('CHOOSE, DO NOT SPELL','选一选，不用拼写。','题目只从你练过的词里出：练过 ${totalPracticed} 个词。')
+  return intro('CHOOSE, DO NOT SPELL','选一选，不用拼写。',`题目只从你练过的词里出：练过 ${totalPracticed} 个词。`)
   +(done?`<section class="setting-card"><h2>这一组选完了。</h2><p>答对 ${q.right} 题，答错 ${q.wrong} 题。结果已经计入词汇量估算。</p><div class="button-row"><button class="primary" data-quiz-start="${q.type}">再来一组 ${icon('arrow')}</button><button class="secondary" id="quiz-end">回到选择页</button></div></section>`:'')
-  +`<section class="setting-card"><h2>选一个方向</h2><p>三种都不需要键盘输入。题量按你<b>已经练过的词</b>算，没背过的词不会出现。</p><div class="button-row">
+  +`<section class="setting-card"><h2>选一个方向</h2><p>三种都不需要键盘输入。题量按你<b>已经练过的词</b>算，没背过的词不会出现。${skCount?`已跳过 <b>${skCount}</b> 个词，默认不参与出题——想验证自己是不是真记住了，可以打开下面的开关。`:''}</p>${skCount?`<div class="button-row"><button class="${includeSkipped()?'primary':'secondary'}" data-quiz-toggle-skip>${includeSkipped()?'已包含跳过的词（点击排除）':'把已跳过的词也纳入出题'}</button><button class="secondary" data-unskip-all>恢复全部跳过</button></div>`:''}<div class="button-row">
    <button class="primary" data-quiz-start="meaning" ${nMeaning?'':'disabled'}>看英文选中文 · 认识（${nMeaning} 词）</button>
    <button class="secondary" data-quiz-start="cloze" ${nCloze?'':'disabled'}>看句子选单词 · 会用（${nCloze} 词）</button>
    <button class="secondary" data-quiz-start="phrase" ${nPhrase?'':'disabled'}>看中文选搭配 · 短语（${nPhrase} 词）</button>
