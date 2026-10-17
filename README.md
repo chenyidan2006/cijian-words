@@ -92,6 +92,8 @@
 
 `zh-lexicon.js` 约 7.3 MB，随页面一次性载入（与 `enrichment.js` 同级）。
 
+![选择题讲解](docs/feature-quiz-explain.png)
+
 ### 例句与词组质量（全量体检结果）
 
 对 9389 个词条、27009 条词组、12249 条例句做了全量体检，并做了清理：
