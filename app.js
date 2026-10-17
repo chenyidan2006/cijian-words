@@ -53,12 +53,12 @@ function status(l){const p=pFor(l.id);if(!p.attempts)return '尚未练习';if((p
 function nav(p){if(page==='practice'){touchTimer();save();}if(p==='practice'&&state.active){state.active.lastTick=now();save();}page=p;render();window.scrollTo({top:0,behavior:'instant'});}
 const navItems=[['home','home','开始学习'],['library','book','查词与搭配'],['scenes','grid','场景表达'],['difficult','star','还不会的'],['settings','settings','设置']];
 function render(){
- const title=navItems.find(x=>x[0]===page)?.[2]||({practice:'专注练习',month:'单词练习',exams:'听读替换',history:'学习记录',result:'本次练习'}[page]||'学习');
- $('#app').innerHTML=`<div class="shell"><aside class="sidebar"><div class="brand"><svg class="brandmark" viewBox="0 0 36 44" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 39V17M18 24C5 24 4 13 5 8c10 0 13 6 13 16ZM18 18C18 5 26 3 32 3c0 10-3 15-14 15ZM8 40h20"/></svg><div><div class="brand-name">词间</div><div class="brand-sub">WORDS TO LIFE</div></div></div><nav class="nav" aria-label="主导航">${navItems.map(([id,i,t])=>`<button data-nav="${id}" class="${page===id?'active':''}" ${page===id?'aria-current="page"':''}>${icon(i)}<span>${t}</span></button>`).join('')}</nav><div class="sidebar-note"><div class="sprig">❧</div>慢慢想起，慢慢会用。<br>每天一点，也在向前。</div><div class="sidebar-bottom"><span class="avatar">P</span><div>我的学习空间<br><span class="sub"><i class="online-dot"></i>进度保存在此浏览器</span></div></div></aside><main class="main"><header class="topbar"><div class="breadcrumb"><span class="mobile-brand">词间</span>我的学习空间 <strong>/ ${esc(title)}</strong></div><div class="top-actions"><span>少一点负担，多一点表达</span><button class="icon-btn" data-nav="settings" aria-label="学习设置">${icon('settings')}</button></div></header>${!storageOK?'<div class="storage-alert" role="alert">本地存储暂不可用。当前内容仍可练习，请及时到设置导出备份。</div>':''}<div id="page-content">${({home:home,month:monthPage,library:library,scenes:scenesPage,exams:examsPage,difficult:difficultPage,history:history,settings:settings,practice:practice,result:result}[page]||home)()}</div><footer class="footer"><span>词间 · 把单词用起来</span><span>从眼熟到想起，从单词到表达。</span></footer></main></div>`;
+ const title=navItems.find(x=>x[0]===page)?.[2]||({practice:'专注练习',month:'单词练习',review:'复习',quiz:'选择题',exams:'听读替换',history:'学习记录',result:'本次练习'}[page]||'学习');
+ $('#app').innerHTML=`<div class="shell"><aside class="sidebar"><div class="brand"><svg class="brandmark" viewBox="0 0 36 44" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 39V17M18 24C5 24 4 13 5 8c10 0 13 6 13 16ZM18 18C18 5 26 3 32 3c0 10-3 15-14 15ZM8 40h20"/></svg><div><div class="brand-name">词间</div><div class="brand-sub">WORDS TO LIFE</div></div></div><nav class="nav" aria-label="主导航">${navItems.map(([id,i,t])=>`<button data-nav="${id}" class="${page===id?'active':''}" ${page===id?'aria-current="page"':''}>${icon(i)}<span>${t}</span></button>`).join('')}</nav><div class="sidebar-note"><div class="sprig">❧</div>慢慢想起，慢慢会用。<br>每天一点，也在向前。</div><div class="sidebar-bottom"><span class="avatar">P</span><div>我的学习空间<br><span class="sub"><i class="online-dot"></i>进度保存在此浏览器</span></div></div></aside><main class="main"><header class="topbar"><div class="breadcrumb"><span class="mobile-brand">词间</span>我的学习空间 <strong>/ ${esc(title)}</strong></div><div class="top-actions"><span>少一点负担，多一点表达</span><button class="icon-btn" data-nav="settings" aria-label="学习设置">${icon('settings')}</button></div></header>${!storageOK?'<div class="storage-alert" role="alert">本地存储暂不可用。当前内容仍可练习，请及时到设置导出备份。</div>':''}<div id="page-content">${({home:home,month:monthPage,review:reviewPage,quiz:quizPage,library:library,scenes:scenesPage,exams:examsPage,difficult:difficultPage,history:history,settings:settings,practice:practice,result:result}[page]||home)()}</div><footer class="footer"><span>词间 · 把单词用起来</span><span>从眼熟到想起，从单词到表达。</span></footer></main></div>`;
  bind();
 }
 function intro(en,title,sub,extra=''){return `<section class="intro"><div><div class="eyebrow">${en}</div><h1>${title}</h1><p>${sub}</p></div>${extra}</section>`;}
-function home(){const seen=Object.keys(state.month?.reviewed||{}).length;return intro('WORDS TO LIFE','先想起，再用出来。','选一个范围，直接开始。想停时再停。')+`<section class="simple-start"><h2>今天想练哪一部分？</h2><div class="range-choices"><button class="range-choice" data-free-range="all"><strong>全部</strong><span>9389 词</span><b>开始练习 →</b></button><button class="range-choice" data-free-range="common"><strong>常用</strong><span>7956 词</span><b>开始练习 →</b></button></div><p>中文先出现，英文点开才看。选“想起了”或“还不会”，自动下一条。</p>${state.month?.active?'<button class="text-btn" data-nav="month">继续刚才的单词 →</button>':''}${state.active?'<button class="text-btn" data-start="daily">继续刚才的场景 →</button>':''}</section><div class="simple-secondary"><button class="secondary" data-nav="scenes">练场景表达 →</button><button class="text-btn" data-nav="library">查词与搭配</button><button class="text-btn" data-nav="history">学习记录</button><button class="text-btn" data-nav="exams">听读替换资料</button></div><p class="meaning">已覆盖 ${seen} / 9389 词 · 不限每日数量 · 不要求拼写</p>`;}
+function home(){const seen=Object.keys(state.month?.reviewed||{}).length;return intro('WORDS TO LIFE','先想起，再用出来。','选一个范围，直接开始。想停时再停。')+`<section class="simple-start"><h2>今天想练哪一部分？</h2><div class="range-choices"><button class="range-choice" data-free-range="all"><strong>全部</strong><span>9389 词</span><b>开始练习 →</b></button><button class="range-choice" data-free-range="common"><strong>常用</strong><span>7956 词</span><b>开始练习 →</b></button></div><p>中文先出现，英文点开才看。选“想起了”或“还不会”，自动下一条。</p>${state.month?.active?'<button class="text-btn" data-nav="month">继续刚才的单词 →</button>':''}${state.active?'<button class="text-btn" data-start="daily">继续刚才的场景 →</button>':''}</section><div class="simple-secondary"><button class="secondary" data-nav="review">复习背过的词 →</button><button class="secondary" data-nav="quiz">选一选 · 不拼写 →</button><button class="secondary" data-nav="scenes">练场景表达 →</button><button class="text-btn" data-nav="library">查词与搭配</button><button class="text-btn" data-nav="history">学习记录</button><button class="text-btn" data-nav="exams">听读替换资料</button></div><p class="meaning">已覆盖 ${seen} / 9389 词 · 认识 ≈ ${vocabStats().recognize} 词 · 会用 ≈ ${vocabStats().productive} 词 · 不限每日数量 · 不要求拼写</p>`;}
 function sceneCard(s){const [name,en,i]=s;const count=allLessons().filter(l=>l.scene===name).length;return `<button class="scene-card" data-scene="${attr(name)}"><span class="scene-icon">${icon(i)}</span><h3>${esc(name)}</h3><div class="en-label">${en}</div><div class="card-foot"><span>${count} 个搭配 · 可直接练</span>${icon('arrow')}</div></button>`;}
 function scenesPage(){const themes=[...new Set(allLessons().map(l=>l.theme))];return intro('IN REAL LIFE','先有想说的话，再学用得上的词。','场景串起表达，主题连接词汇。每次只练一小组。')+situationSection()+`<div class="section-head"><h2>按场景练习</h2><button class="text-btn" data-add="">＋ 添加我想说的话</button></div><div class="topic-grid">${scenes.map(sceneCard).join('')}</div><div class="section-head"><h2>按主题找词</h2><small>同一搭配可以从不同入口找到</small></div><div class="tabs">${themes.map(t=>`<button class="chip" data-theme="${attr(t)}">${esc(t)} · ${allLessons().filter(l=>l.theme===t).length}</button>`).join('')}</div>`;}
 function bookOptions(v){return Object.entries(bookNames).map(([k,n])=>`<option value="${k}" ${v===k?'selected':''}>${n}</option>`).join('');}
@@ -160,7 +160,7 @@ document.addEventListener('click',e=>{
  if(b.dataset.freeRange){beginCatalog(orderedWords.filter(w=>b.dataset.freeRange==='all'||catalogMap.get(w)?.common));return;}
  if(b.id==='month-continue'){beginCatalog((state.month?.scope||orderedWords).filter(w=>catalogMap.has(w)));return;}
  if(b.id==='month-start'){beginMonth();return;}
- if(b.id==='month-weak'){beginCatalog(orderedWords.filter(w=>state.month?.reviewed[w]&&state.month.reviewed[w].rating<2));return;}
+ if(b.id==='month-weak'){const sk=state.month?.skipped||{};beginCatalog(orderedWords.filter(w=>!sk[w]&&state.month?.reviewed[w]&&state.month.reviewed[w].rating<2));return;}
  if(b.id==='month-pause'){save();nav('home');return;}
  if(b.dataset.monthFlip){const a=monthData().active;if(a){a.flipped=true;a.tried=b.dataset.monthFlip==='tried';save();render();}return;}
  if(b.hasAttribute('data-month-rate')){rateMonth(+b.dataset.monthRate);return;}
@@ -191,6 +191,13 @@ document.addEventListener('click',e=>{
  if(b.id==='pause-practice'){persistUI();nav('home');return;}
  if(b.id==='pause-save'){$('#modal').close();nav('home');return;}
  if(b.id==='end-session'){$('#modal').close();if(taskUI.feedback&&typeof taskUI.feedback.correct==='boolean'){record(taskUI.feedback.correct);state.active.index++;}taskUI={hint:0,feedback:null,input:''};finish();return;}
+ if(b.dataset.reviewStart){beginReview(b.dataset.reviewStart);return;}
+ if(b.dataset.quizStart){beginQuiz(b.dataset.quizStart);return;}
+ if(b.hasAttribute('data-quiz-answer')){answerQuiz(+b.dataset.quizAnswer);return;}
+ if(b.id==='quiz-next'){nextQuiz();return;}
+ if(b.id==='quiz-end'){endQuiz();return;}
+ if(b.hasAttribute('data-month-skip')){skipWord();return;}
+ if(b.dataset.unskip){unskipWord(b.dataset.unskip);return;}
  if(b.id==='export-data'){exportData();return;}
  if(b.id==='import-data'){$('#import-file').click();return;}
 });
@@ -200,6 +207,183 @@ const lexical = word => window.LEXICON[word]||{meaning:'词形待核对',definit
 const orderedWords=[...window.CATALOG].sort((a,b)=>(lexical(a.word).rank||999999)-(lexical(b.word).rank||999999)||a.word.localeCompare(b.word)).map(c=>c.word);
 const monthWords=d=>orderedWords.slice(Math.floor((d-1)*orderedWords.length/30),Math.floor(d*orderedWords.length/30));
 function monthData(){if(!state.month)state.month={started:day(),reviewed:{},active:null};return state.month;}
+
+// ── 复习 / 跳过 / 选择题 / 词汇量（新增功能）──────────────────────────────────
+function skippedMap(){const m=monthData();return m.skipped||(m.skipped={});}
+function isSkipped(w){return !!skippedMap()[w];}
+function quizMap(){const m=monthData();return m.quiz||(m.quiz={});}
+
+function skipWord(){const m=monthData(),a=m.active;if(!a)return;const word=a.words[a.index];
+ m.skipped=skippedMap();m.skipped[word]={at:day()};a.index++;a.flipped=false;a.tried=false;
+ if(a.index>=a.words.length){m.active=null;save();beginCatalog((m.scope||orderedWords).filter(w=>catalogMap.has(w)));return;}
+ save();render();window.scrollTo({top:0,behavior:'instant'});}
+function unskipWord(word){const m=monthData();if(m.skipped)delete m.skipped[word];save();render();}
+function reviewPool(kind){const m=monthData(),rev=m.reviewed||{},sk=m.skipped||{};
+ if(kind==='weak')return orderedWords.filter(w=>!sk[w]&&rev[w]&&rev[w].rating<2);
+ return orderedWords.filter(w=>!sk[w]&&rev[w]).sort((a,b)=>{const ra=rev[a],rb=rev[b];
+  return (ra.rating-rb.rating)||String(ra.date||'').localeCompare(String(rb.date||''));});}
+function beginReview(kind='all'){const pool=reviewPool(kind);
+ if(!pool.length){toast(kind==='weak'?'暂时没有需要重练的词。':'还没有复习记录，先练一组新词吧。');return;}
+ const m=monthData();m.finished=false;m.scope=pool;
+ m.active={words:pool.slice(0,20),index:0,flipped:false,tried:false,day:monthView.day,weak:kind==='weak',label:'复习',review:true};
+ save();nav('month');}
+
+// ── 选择题数据准备 ─────────────────────────────────────────────────────────
+const POS=/^(?:n|v|vt|vi|adj|adv|a|prep|conj|pron|art|aux|modal|num|det|interj|ad)\.\s*/i;
+const escRe=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+function firstMeaning(word){const e=lexical(word);let t=String(e.meaning||'').split('\n')[0].trim();
+ return t.replace(POS,'').replace(/\[[^\]]*\]/g,'').trim();}
+function formsOf(word){const e=lexical(word),out=[word];
+ for(const part of String(e.forms||'').split('/')){const v=(part.includes(':')?part.split(':').slice(1).join(':'):part).trim();
+  if(v.length>1&&/[a-z]/i.test(v))out.push(v);}
+ return [...new Set(out)];}
+function formIn(word,sentence){for(const f of formsOf(word)){if(f.length<2)continue;
+  const m=sentence.match(new RegExp('\\b'+escRe(f)+'\\b','i'));if(m)return m[0];}return '';}
+function neighbors(word,n=14){const i=orderedWords.indexOf(word);if(i<0)return [];
+ const out=[];for(let d=1;out.length<n&&d<orderedWords.length;d+=3){
+  const a=orderedWords[i-d],b=orderedWords[i+d];
+  if(a&&a!==word)out.push(a);if(b&&b!==word&&out.length<n)out.push(b);
+  if(d>1200)break;}
+ return out;}
+function shuffleList(list){const a=[...list];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function posOf(word){const m=String(lexical(word).meaning||'').trim().match(POS);return m?m[0].trim().toLowerCase():'';}
+function shortMeaning(word,limit=2){const lines=String(lexical(word).meaning||'').split('\n')
+ .map(t=>t.trim().replace(POS,'').replace(/\[[^\]]*\]/g,'').trim()).filter(Boolean);
+ return lines.slice(0,limit).join('；').slice(0,44);}
+function goodSentence(word){
+ for(const raw of (lexical(word).examples||[])){
+  const t=String(raw||'').trim();
+  if(t.length<35||t.length>170)continue;
+  if(t.split(/\s+/).length<6)continue;
+  for(const f of formsOf(word)){
+   if(f.length<2)continue;
+   const m=t.match(new RegExp('(^|[^A-Za-z])('+escRe(f)+')(?![A-Za-z\'’])','i'));
+   if(m&&m[2])return {sentence:t,form:m[2]};}}
+ return null;}
+function distractors(word,n=3){
+ const base=lexical(word),pos=posOf(word),len=word.length;
+ const i=orderedWords.indexOf(word);
+ const cands=[];
+ for(let d=1;d<=1400&&cands.length<n*8;d+=1){
+  for(const w2 of [orderedWords[i-d],orderedWords[i+d]]){
+   if(!w2||w2===word)continue;
+   const e2=lexical(w2);
+   if(!shortMeaning(w2))continue;
+   if(posOf(w2)!==pos)continue;
+   if(Math.abs(w2.length-len)>4)continue;
+   cands.push(w2);}}
+ // 同域词优先
+ const doms=new Set(base.domains||[]);
+ const sameDom=cands.filter(w2=>(lexical(w2).domains||[]).some(d=>doms.has(d)));
+ const pool=[...new Set([...sameDom,...cands])];
+ return shuffleList(pool).slice(0,n);}
+
+function quizPool(type){
+ return orderedWords.filter(w=>{if(state.month?.skipped?.[w])return false;
+  if(type==='meaning')return !!shortMeaning(w);
+  return !!goodSentence(w);});}
+
+function makeQuestion(type,word){
+ if(type==='meaning'){
+  const right=shortMeaning(word)||'词义待核对';
+  const opts=[{text:right,ok:true}];
+  for(const w2 of distractors(word,10)){if(opts.length>=4)break;
+   const m2=shortMeaning(w2);if(!m2||m2===right||opts.some(o=>o.text===m2))continue;opts.push({text:m2,ok:false});}
+  return {word,type,kind:'see',question:word,options:shuffleList(opts)};}
+ const hit=goodSentence(word);
+ if(!hit){
+  // 没有合适的例句时退化为“看英文选中文”，保证题型稳定且不计为会用
+  const right=shortMeaning(word)||'词义待核对',opts=[{text:right,ok:true}];
+  for(const w2 of distractors(word,10)){if(opts.length>=4)break;
+   const m2=shortMeaning(w2);if(!m2||m2===right||opts.some(o=>o.text===m2))continue;opts.push({text:m2,ok:false});}
+  return {word,type:'meaning',kind:'see',question:word,options:shuffleList(opts)};}
+ const options=[{text:word,ok:true}];
+ for(const w2 of distractors(word,12)){if(options.length>=4)break;
+  if(options.some(o=>o.text===w2))continue;if(formIn(w2,hit.sentence))continue;
+  options.push({text:w2,ok:false});}
+ const sentence=hit.sentence.replace(new RegExp('(^|[^A-Za-z])'+escRe(hit.form)+'(?![A-Za-z\'’])','i'),
+  (all,pre)=>pre+'________');
+ const shown=sentence.charAt(0).toUpperCase()+sentence.slice(1);
+ return {word,type:'cloze',kind:'use',sentence:shown,hint:shortMeaning(word),options:shuffleList(options)};}
+
+function noteQuiz(word,kind,ok){const q=quizMap(),r=q[word]||(q[word]={see:{ok:0,bad:0},use:{ok:0,bad:0}});
+ r[kind]=r[kind]||{ok:0,bad:0};r[kind][ok?'ok':'bad']++;r.last=day();}
+
+function beginQuiz(type){const pool=quizPool(type);
+ if(!pool.length){toast('这个方向暂时没有可用题目。');return;}
+ const queue=shuffleList(pool).slice(0,20);
+ state.quiz={type,queue,i:0,current:null,right:0,wrong:0,answered:null,finished:false};
+ quizQuestion();save();nav('quiz');}
+function quizQuestion(){const q=state.quiz;if(!q)return;
+ if(q.i>=q.queue.length){q.finished=true;q.current=null;return;}
+ q.current=makeQuestion(q.type,q.queue[q.i]);q.answered=null;}
+function answerQuiz(idx){const q=state.quiz;if(!q||!q.current||q.answered!==null)return;
+ const opt=q.current.options[idx];if(!opt)return;q.answered=idx;
+ if(opt.ok)q.right++;else q.wrong++;noteQuiz(q.current.word,q.current.kind,!!opt.ok);save();render();}
+function nextQuiz(){const q=state.quiz;if(!q)return;q.i++;quizQuestion();save();render();window.scrollTo({top:0,behavior:'instant'});}
+function endQuiz(){state.quiz=null;save();render();}
+
+// ── 词汇量：认识（接受性）与会用（产出性）分开算 ────────────────────────────
+function vocabStats(){const m=state.month||{},rev=m.reviewed||{},sk=m.skipped||{},qz=m.quiz||{};
+ const best=new Map();
+ for(const l of allLessons()){const p=pFor(l.id);if(!p.attempts)continue;
+  const k=String(l.word||'').toLowerCase(),s=Math.max(p.streak||0,p.oralStreak||0);
+  if(!best.has(k)||best.get(k)<s)best.set(k,s);}
+ let recog=0,prod=0;const levels={skip:0,solid:0,recall:0,faint:0,tried:0,seeOk:0,clozeOk:0};
+ for(const c of window.CATALOG){const w=c.word,r=rev[w],q=qz[w]||{};
+  let recallW=0;
+  if(sk[w])recallW=1;
+  else if(r)recallW=r.rating===2?((r.passes||1)>=2?1:0.7):0.25;
+  else {const s=best.get(w.toLowerCase());recallW=s>=2?0.8:s===1?0.5:0;}
+  const use=q.use||{},see=q.see||{};
+  if(use.ok>=2)recallW=Math.max(recallW,1);
+  else if(use.ok===1)recallW=Math.max(recallW,0.8);
+  else if(!use.ok&&use.bad>0)recallW=Math.min(recallW||0.2,0.2);
+  let recogW=recallW;
+  if(see.ok>0)recogW=Math.max(recogW,see.ok>=2?1:0.9);
+  else if(!see.ok&&see.bad>0&&!recogW)recogW=0.2;
+  prod+=recallW;recog+=recogW;
+  if(sk[w])levels.skip++;
+  else if(r&&r.rating===2&&(r.passes||1)>=2)levels.solid++;
+  else if(r&&r.rating===2)levels.recall++;
+  else if(r)levels.faint++;
+  if(use.ok)levels.clozeOk++;
+  if(see.ok)levels.seeOk++;}
+ return {recognize:Math.round(recog),productive:Math.round(prod),...levels,covered:Object.keys(rev).length+levels.skip};}
+
+function vocabCard(){const v=vocabStats();
+ return `<section class="setting-card"><h2>我的词汇量估算</h2><div class="coverage-grid"><div><b>${v.recognize}</b><span>认识 ≈（看英文能想起中文）</span></div><div><b>${v.productive}</b><span>会用 ≈（看中文能想出英文）</span></div><div><b>${v.covered}</b><span>练过的词条</span></div></div><p>认识量总是大于或等于会用量：能产出就一定认得，反过来不成立。按表现加权——跳过或连续两次独立想起按 1 个词计；只独立想起一次按 0.7；还不会按 0.25；场景里练过按 0.5–0.8；选择题答对会另加分。没有练过的词不计入。</p><p class="meaning">这是根据练习表现做的估算，不是考试评分。</p></section>`;}
+
+function reviewPage(){const m=monthData(),sk=m.skipped||{},v=vocabStats();
+ const revCount=Object.keys(m.reviewed||{}).length,skCount=Object.keys(sk).length;
+ const weak=reviewPool('weak').length,total=reviewPool('all').length;
+ const list=Object.keys(sk);
+ return intro('REVISIT WHAT YOU KNOW','学过的，再想一遍。','只复习练过的词。已经会了的，点“跳过”就不再出现。')
+ +`<section class="stats"><div class="stat"><div class="stat-label">认识 ≈</div><div class="stat-number">${v.recognize}<small>词</small></div></div><div class="stat"><div class="stat-label">会用 ≈</div><div class="stat-number">${v.productive}<small>词</small></div></div><div class="stat"><div class="stat-label">已跳过</div><div class="stat-number">${skCount}<small>不再出现</small></div></div></section>`
+ +`<section class="setting-card"><h2>选一种复习</h2><p>复习只看你练过的词。“薄弱词”是上次选了“还不会”的那些。每小组 20 词，想停就停。跳到某个词时不想要它了，点“跳过”，以后就不再出现。</p><div class="button-row"><button class="primary" data-review-start="all" ${total?'':'disabled'}>复习全部练过的 · ${total}</button><button class="secondary" data-review-start="weak" ${weak?'':'disabled'}>只复习薄弱词 · ${weak}</button><button class="secondary" data-nav="quiz">用选择题再练 →</button></div></section>`
+ +vocabCard()
+ +(list.length?`<section class="setting-card"><h3>已跳过的词 · ${list.length}</h3><p>这些词不会出现在练习、复习和选择题里。点“恢复”可以让它们重新出现。</p><div class="history-list">${list.slice(0,300).map(w=>`<div class="history-row"><div><strong>${esc(w)}</strong><br><small>${esc(firstMeaning(w)||'词形待核对')}</small></div><button class="mini" data-unskip="${attr(w)}">恢复</button></div>`).join('')}</div></section>`:'');}
+
+// ── 选择题页面 ──────────────────────────────────────────────────────────────
+function quizPage(){const q=state.quiz,v=vocabStats();
+ if(!q||q.finished||!q.current){
+  const done=q&&q.finished;
+  return intro('CHOOSE, DO NOT SPELL','选一选，不用拼写。','看英文选中文，是“认识”；看句子选单词，是“会用”。')
+  +(done?`<section class="setting-card"><h2>这一组选完了。</h2><p>答对 ${q.right} 题，答错 ${q.wrong} 题。结果已经计入词汇量估算。</p><div class="button-row"><button class="primary" data-quiz-start="${q.type}">再来一组 ${icon('arrow')}</button><button class="secondary" id="quiz-end">回到选择页</button></div></section>`:'')
+  +`<section class="setting-card"><h2>选一个方向</h2><p>“看英文选中文”测的是认出词义，量大、较轻松；“看句子选单词”要从语义和搭配里挑出正确的词，更接近真的会用。两种都不需要键盘输入。</p><div class="button-row"><button class="primary" data-quiz-start="meaning">看英文选中文 · 认识 ${icon('arrow')}</button><button class="secondary" data-quiz-start="cloze">看句子选单词 · 会用</button></div></section>`
+  +`<section class="stats"><div class="stat"><div class="stat-label">选择题已答对（认识）</div><div class="stat-number">${v.seeOk}<small>词</small></div></div><div class="stat"><div class="stat-label">选择题已答对（填空）</div><div class="stat-number">${v.clozeOk}<small>词</small></div></div><div class="stat"><div class="stat-label">会用 ≈</div><div class="stat-number">${v.productive}<small>词</small></div></div></section>`
+  +vocabCard();}
+ const c=q.current,answered=q.answered;
+ const opts=c.options.map((o,i)=>{
+  let cls='';
+  if(answered!==null){if(o.ok)cls='right';else if(i===answered)cls='wrong';}
+  return `<button ${answered===null?`data-quiz-answer="${i}"`:'disabled'} class="${cls}">${esc(o.text)}</button>`;}).join('');
+ const body=c.type==='meaning'
+  ? `<div class="task-title">这个单词，是什么意思？</div><div class="simple-answer"><h2>${esc(c.question)}</h2>${lexical(c.question).phonetic?'<p>/'+esc(lexical(c.question).phonetic)+'/</p>':''}</div>`
+  : `<div class="task-title">根据句子的意思，选哪个词？</div><div class="quiz-sentence">${esc(c.sentence).replace('________','<b>________</b>')}</div><p class="quiz-meaning">提示：${esc(c.hint||'（无中文提示）')}</p>`;
+ return `<div class="practice-wrap"><div class="practice-top"><button class="text-btn" id="quiz-end">← 结束这组</button><span>${c.type==='meaning'?'看英文选中文':'看句子选单词'} · ${q.i+1} / ${q.queue.length}</span><span>答对 ${q.right} · 答错 ${q.wrong}</span></div><section class="exercise oral-card">${body}<div class="quiz-options">${opts}</div>${answered!==null?`<div class="feedback ${c.options[answered].ok?'':'wrong'}"><strong>${c.options[answered].ok?'选对了。':'这次不对，正确答案是：'+esc(c.options.find(o=>o.ok)?.text||'')+'。'}</strong>${c.type==='cloze'?`<div class="example"><div class="en">${esc(c.sentence.replace('________',c.word))}</div></div>`:''}${c.type==='meaning'?`<p>${esc(c.question)}：${esc(c.options.find(o=>o.ok)?.text||'')}</p>`:''}</div><div class="button-row"><button class="primary" id="quiz-next">${q.i+1>=q.queue.length?'看结果':'下一题'} ${icon('arrow')}</button></div>`:''}</section></div>`;}
+
 function monthBanner(){const seen=Object.keys(state.month?.reviewed||{}).length;return `<section class="month-banner"><div><div class="eyebrow">AT YOUR OWN PACE · 自由刷词</div><h2>想练多少，就接着练多少。</h2><p>全部 9389 词 · 常用 7956 词 · 不练拼写 · 不设每日配额</p><small>已覆盖 ${seen} / 9389；每组20词便于暂停，完成后可继续下一组。</small></div><button class="primary" data-nav="month">继续刷词 ${icon('arrow')}</button></section>`;}
 function oralPractice(){const a=state.active,l=lesson(a.queue[a.index]);if(!l){state.active=null;save();return home();}const f=taskUI.feedback;return `<div class="practice-wrap"><div class="practice-top"><button class="text-btn" id="pause-practice">← 暂停</button><span>${esc(l.scene)} · 连续练习</span><button class="text-btn" data-save-id="${attr(l.id)}">${state.saved.includes(l.id)?'★ 已收藏':'☆ 收藏'}</button></div><section class="exercise oral-card"><div class="task-title">这句话，你会怎么说？</div><h2>${esc(l.zh)}</h2>${!f?`<p class="oral-instruction">在心里想，或说出来。英文先藏起来。</p><div class="recall-space">${icon('chat')}</div>${taskUI.hint?'<div class="hint">提示：'+esc(l.phraseZh)+'</div>':''}<div class="oral-buttons"><button class="primary" id="oral-check">点开英文，核对 ${icon('arrow')}</button><button class="text-btn" id="get-hint">给点提示</button></div>`:`<div class="feedback"><div class="answer">${esc(l.phrase)}</div><div class="example"><div class="en">${esc(l.sentence)}</div></div><p class="usage-tip">${esc(l.tip)}</p><div class="self-rate"><button class="primary" data-self-rate="yes">${taskUI.hint?'提示后会用':'会用'}，下一条 →</button><button class="secondary" data-self-rate="no">还不会，下一条 →</button></div><div class="button-row"><button class="text-btn" data-speak-id="${attr(l.id)}">听一听</button></div>${l.bookPage||l.examSource?'<details class="lex-fold"><summary>查看题目来源与更多说明</summary>'+sourceInfo(l)+'</details>':''}</div>`}</section></div>`;}
 function oxfordUrl(word){return word==='be'?'https://www.oxfordlearnersdictionaries.com/definition/english/be_1':'https://www.oxfordlearnersdictionaries.com/search/english/?q='+encodeURIComponent(word);}
@@ -224,10 +408,10 @@ function dictionaryHtml(word){
 
 function lexDetail(word){showModal(modalHead('词条与用法')+dictionaryHtml(word)+'<div class="button-row"><button class="primary" data-recall-word="'+attr(word)+'">藏起英文，回忆这个词</button></div>');}
 function monthPage(){const m=monthData();if(m.active)return monthPractice();const seen=Object.keys(m.reviewed).length,weak=Object.values(m.reviewed).filter(r=>r.rating<2).length;return intro('KEEP GOING, AT YOUR PACE','自由刷词，想停时再停。','只分全部和常用；先回忆，再展开英文，不需要输入拼写。')+`${m.finished?'<section class="setting-card"><h2>这一组完成了，接着来吗？</h2><p>进度已经保存。下一组会接着未看过的词。</p><div class="button-row"><button class="primary" id="month-continue">继续下一组 →</button><button class="secondary" data-nav="home">暂时休息</button></div></section>':''}<section class="stats"><div class="stat"><div class="stat-label">已经覆盖</div><div class="stat-number">${seen}<small>/ 9389 词</small></div></div><div class="stat"><div class="stat-label">眼熟但想不起 / 不认识</div><div class="stat-number">${weak}<small>留作主动回忆</small></div></div></section><section class="setting-card"><h2>选择这次要练的范围</h2><p>没有每日任务或上限，每小组20词，方便随时暂停；完成一组还能继续。想一个月过一轮，也可以按自己的时间安排。</p><div class="button-row"><button class="primary" data-free-range="all">全部 · 9389 词</button><button class="secondary" data-free-range="common">常用 · 7956 词</button><button class="secondary" id="month-weak" ${weak?'':'disabled'}>回顾叫不出的词 · ${weak}</button></div></section><div class="coverage-grid"><div><b>${window.ENRICHMENT_STATS.meanings}</b><span>词条已有中文释义</span></div><div><b>${window.ENRICHMENT_STATS.phrases}</b><span>词条有词典表达</span></div><div><b>${window.ENRICHMENT_STATS.examples}</b><span>词条有补充用例</span></div></div>`;}
-function beginCatalog(words){if(!words.length){toast('这个范围暂时没有可练的词。');return;}const m=monthData(),fresh=words.filter(w=>!m.reviewed[w]);m.finished=false;m.scope=words.length===1?[words[0],...orderedWords.filter(w=>w!==words[0])]:words;m.active={words:(fresh.length?fresh:words).slice(0,20),index:0,flipped:false,tried:false,day:monthView.day,weak:false,label:'自由刷词'};save();nav('month');}
-function beginMonth(weak=false){const m=monthData();if(m.active){nav('month');return;}let words;if(weak)words=orderedWords.filter(w=>m.reviewed[w]&&m.reviewed[w].rating<2).slice(0,20);else words=monthWords(monthView.day).filter(w=>!m.reviewed[w]).slice(0,20);if(!words.length){toast('这一组已经覆盖完了，可以选下一天或回顾薄弱词。');return;}m.active={words,index:0,flipped:false,tried:false,day:monthView.day,weak};save();nav('month');}
+function beginCatalog(words){const m0=monthData(),sk0=m0.skipped||{};words=words.filter(w=>!sk0[w]);if(!words.length){toast('这个范围暂时没有可练的词。');return;}const m=m0,fresh=words.filter(w=>!m.reviewed[w]);m.finished=false;m.scope=words.length===1?[words[0],...orderedWords.filter(w=>w!==words[0])]:words;m.active={words:(fresh.length?fresh:words).slice(0,20),index:0,flipped:false,tried:false,day:monthView.day,weak:false,label:'自由刷词'};save();nav('month');}
+function beginMonth(weak=false){const m=monthData();if(m.active){nav('month');return;}const sk=m.skipped||{};let words;if(weak)words=orderedWords.filter(w=>!sk[w]&&m.reviewed[w]&&m.reviewed[w].rating<2).slice(0,20);else words=monthWords(monthView.day).filter(w=>!m.reviewed[w]&&!sk[w]).slice(0,20);if(!words.length){toast('这一组已经覆盖完了，可以选下一天或回顾薄弱词。');return;}m.active={words,index:0,flipped:false,tried:false,day:monthView.day,weak};save();nav('month');}
 function meaningPrompt(word){let text=lexical(word).meaning;if(!text)return '原词表中的一个写法待核对条目。翻开后查看说明，不计作已掌握。';text=text.split('\n').slice(0,2).join('；').replace(/\[[^\]]+\]/g,'').replace(/(?:n|v|vt|vi|adj|adv|a|prep|conj|pron|art|aux|modal|num|det|interj)\./g,'').trim();const escaped=word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return text.replace(new RegExp(escaped,'gi'),'____');}
-function monthPractice(){const m=monthData(),a=m.active,word=a.words[a.index],e=lexical(word);return `<div class="practice-wrap"><div class="practice-top"><button class="text-btn" id="month-pause">← 暂停</button><span>自由刷词 · 不练拼写</span></div><section class="exercise oral-card">${!a.flipped?`<div class="task-title">你能想起哪个英文词？</div><h2>${esc(meaningPrompt(word))}</h2><p class="oral-instruction">先想一想，再点开。</p><div class="recall-space">${icon('chat')}</div><div class="oral-buttons"><button class="primary" data-month-flip="tried">点开英文，核对 →</button></div>`:`<div class="simple-answer"><h2>${esc(word)}</h2><p>${esc((e.meaning||'词形待核对').split('\n').slice(0,2).join('；'))}</p></div><div class="oral-buttons"><button class="primary" data-month-rate="2" ${!e.meaning?'disabled':''}>想起了，下一条 →</button><button class="secondary" data-month-rate="1">还不会，下一条 →</button></div><details class="lex-fold"><summary>看解释、搭配和例句</summary>${dictionaryHtml(word)}</details>`}</section></div>`;}
+function monthPractice(){const m=monthData(),a=m.active,word=a.words[a.index],e=lexical(word);return `<div class="practice-wrap"><div class="practice-top"><button class="text-btn" id="month-pause">← 暂停</button><span>${a.review?'复习 · 不练拼写':'自由刷词 · 不练拼写'}</span></div><section class="exercise oral-card">${!a.flipped?`<div class="task-title">你能想起哪个英文词？</div><h2>${esc(meaningPrompt(word))}</h2><p class="oral-instruction">先想一想，再点开。</p><div class="recall-space">${icon('chat')}</div><div class="oral-buttons"><button class="primary" data-month-flip="tried">点开英文，核对 →</button></div><div class="oral-buttons"><button class="text-btn" data-month-skip title="这个词以后不再出现">这个词我会，跳过，不再出现</button></div>`:`<div class="simple-answer"><h2>${esc(word)}</h2><p>${esc((e.meaning||'词形待核对').split('\n').slice(0,2).join('；'))}</p></div><div class="oral-buttons"><button class="primary" data-month-rate="2" ${!e.meaning?'disabled':''}>想起了，下一条 →</button><button class="secondary" data-month-rate="1">还不会，下一条 →</button></div><div class="oral-buttons"><button class="text-btn" data-month-skip title="这个词以后不再出现">跳过这个词，不再出现</button></div><details class="lex-fold"><summary>看解释、搭配和例句</summary>${dictionaryHtml(word)}</details>`}</section></div>`;}
 
 function rateMonth(value){const m=monthData(),a=m.active;if(!a?.flipped)return;const word=a.words[a.index];let rating=+value;if(rating===2&&!a.tried)rating=1;m.reviewed[word]={rating,date:day(),passes:(m.reviewed[word]?.passes||0)+1};a.index++;if(a.index>=a.words.length){m.active=null;beginCatalog((m.scope||orderedWords).filter(w=>catalogMap.has(w)));return;}else {a.flipped=false;a.tried=false;}save();render();window.scrollTo({top:0,behavior:'instant'});}
 function situationSection(){return `<div class="section-head"><h2>我现在想做什么？</h2><small>从目的找表达，先想再看</small></div><div class="intent-grid">${window.SITUATIONS.map(k=>`<button class="intent-card" data-situation="${attr(k.id)}"><span class="badge">${esc(k.scene)}</span><h3>${esc(k.goal)}</h3><p>${esc(k.task)}</p><span class="text-btn">试着说一说 →</span></button>`).join('')}</div>`;}
