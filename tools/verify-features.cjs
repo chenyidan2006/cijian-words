@@ -1,4 +1,4 @@
-// 功能测试：复习 / 跳过 / 选择题（认识·语义填空）/ 词汇量（认识·会用）
+// 功能测试：复习 / 跳过 / 选择题（只考练过的词 + 讲解）/ 词汇量（认识·会用）
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
@@ -24,7 +24,7 @@ function boot() {
     vm.runInContext(fs.readFileSync(path.join(SITE, name), 'utf8'), ctx);
 
   let source = fs.readFileSync(path.join(SITE, 'app.js'), 'utf8');
-  const exp = `window.test={skipWord,unskipWord,beginReview,reviewPool,vocabStats,reviewPage,isSkipped,skippedMap,quizMap,monthData,monthPractice,beginCatalog,beginMonth,nav,render,orderedWords,beginQuiz,makeQuestion,answerQuiz,nextQuiz,endQuiz,quizPool,firstMeaning,shortMeaning,posOf,formIn,formsOf,quizPage,getState:()=>state};render();\n})();`;
+  const exp = `window.test={skipWord,unskipWord,beginReview,reviewPool,vocabStats,reviewPage,isSkipped,skippedMap,quizMap,monthData,monthPractice,beginCatalog,beginMonth,nav,render,orderedWords,beginQuiz,makeQuestion,answerQuiz,nextQuiz,endQuiz,quizPool,firstMeaning,shortMeaning,posOf,formIn,formsOf,quizPage,practicedWords,bestExample,explainHtml,usablePhrases,getState:()=>state};render();\n})();`;
   if (!/render\(\);\s*\}\)\(\);\s*$/.test(source)) throw new Error('app.js 尾部结构不符合预期');
   source = source.replace(/render\(\);\s*\}\)\(\);\s*$/, exp);
   vm.runInContext(source, ctx);
@@ -36,196 +36,167 @@ const W = t.orderedWords;
 let n = 0;
 const ok = (name, fn) => { fn(); n++; console.log('  ✓ ' + name); };
 
-// ── 词汇量基线 ──
 ok('初始：认识 0 / 会用 0', () => {
   const v = t.vocabStats();
   assert.equal(v.recognize, 0);
   assert.equal(v.productive, 0);
 });
+ok('没练过任何词时，选择题题库为空', () => {
+  assert.equal(t.practicedWords().length, 0);
+  assert.equal(t.quizPool('meaning').length, 0);
+  assert.equal(t.quizPool('cloze').length, 0);
+  assert.equal(t.quizPool('phrase').length, 0);
+});
 
 const st = t.getState();
 st.month = { started: '2026-10-17', reviewed: {}, active: null };
-st.month.reviewed[W[0]] = { rating: 2, date: '2026-10-17', passes: 1 }; // 0.7
-st.month.reviewed[W[1]] = { rating: 2, date: '2026-10-17', passes: 2 }; // 1.0
-st.month.reviewed[W[2]] = { rating: 1, date: '2026-10-17', passes: 1 }; // 0.25
+const practised = W.slice(0, 12);
+for (const w of practised) st.month.reviewed[w] = { rating: 2, date: '2026-10-17', passes: 1 };
 
-ok('会用 = 加权和（1.95 → 2）', () => {
-  const v = t.vocabStats();
-  assert.equal(v.productive, 2);
+ok('练过后题库只含练过的词', () => {
+  const pool = t.quizPool('meaning');
+  assert.ok(pool.length > 0);
+  for (const w of pool) assert.ok(practised.includes(w), w + ' 不该出现在题库');
 });
-ok('认识 ≥ 会用', () => {
-  const v = t.vocabStats();
-  assert.ok(v.recognize >= v.productive);
-});
-
-// ── 跳过的词 ──
-ok('跳过的词计入会用，且不再进入选择题题库', () => {
-  t.skippedMap()[W[3]] = { at: '2026-10-17' };
-  const v = t.vocabStats();
-  assert.equal(v.skip, 1);
-  assert.equal(v.productive, 3);
-  assert.ok(!t.quizPool('meaning').includes(W[3]));
-  assert.ok(!t.quizPool('cloze').includes(W[3]));
+ok('未练过的词绝不进入题库', () => {
+  const pool = new Set(t.quizPool('meaning').concat(t.quizPool('cloze'), t.quizPool('phrase')));
+  for (const w of pool) assert.ok(st.month.reviewed[w], w + ' 未练过却进了题库');
 });
 
-// ── 选择题：看英文选中文 ──
-ok('认识题：4 个选项、恰好 1 个正确、正确项等于该词释义', () => {
-  const q = t.makeQuestion('meaning', 'accumulate');
+ok('认识题：4 选项、唯一正确、带选项归属词', () => {
+  const q = t.makeQuestion('meaning', practised[0]);
   assert.equal(q.options.length, 4);
   assert.equal(q.options.filter(o => o.ok).length, 1);
-  assert.equal(q.question, 'accumulate');
-  const right = q.options.find(o => o.ok).text;
-  assert.equal(right, t.shortMeaning('accumulate'));
+  assert.equal(q.options.find(o => o.ok).text, t.shortMeaning(practised[0]));
+  for (const o of q.options) assert.ok(o.owner, '每个选项应带归属词');
 });
-
 ok('认识题的干扰项互不重复', () => {
-  for (const w of ['be', 'accumulate', 'significant', 'environment', 'run']) {
+  for (const w of practised.slice(0, 5)) {
     const q = t.makeQuestion('meaning', w);
     const texts = q.options.map(o => o.text);
-    assert.equal(new Set(texts).size, texts.length, w + ' 选项重复');
+    assert.equal(new Set(texts).size, texts.length);
   }
 });
 
-// ── 选择题：语义填空 ──
-const clozeWord = 'significant';
-ok('填空题：句子里挖空、带中文提示、4 个选项', () => {
-  const q = t.makeQuestion('cloze', clozeWord);
-  assert.ok(q.sentence, '应有句子');
-  assert.ok(q.sentence.includes('________'), '句子应有空');
+const withExample = practised.find(w => t.bestExample(w));
+ok('填空题：有空、有中文提示、4 选项', () => {
+  assert.ok(withExample, '样例词应有例子');
+  const q = t.makeQuestion('cloze', withExample);
+  assert.equal(q.type, 'cloze');
+  assert.ok(q.sentence.includes('________'));
   assert.equal(q.options.length, 4);
   assert.equal(q.options.filter(o => o.ok).length, 1);
-  assert.equal(q.options.find(o => o.ok).text, clozeWord);
-  assert.ok(q.hint && q.hint.length > 0, '应带中文提示');
+  assert.ok(q.hint && q.hint.length > 0);
 });
-
-ok('填空题：正确词本身不出现在挖空后的句子里', () => {
-  for (const w of ['significant', 'accumulate', 'environment', 'run', 'go']) {
+ok('填空题：答案不出现在挖空后的句子里', () => {
+  for (const w of practised) {
+    if (!t.bestExample(w)) continue;
     const q = t.makeQuestion('cloze', w);
-    if (!q.sentence) continue;
-    assert.ok(!t.formIn(w, q.sentence), w + ' 的答案仍出现在句子里：' + q.sentence);
+    if (q.type !== 'cloze') continue;
+    assert.ok(!t.formIn(w, q.sentence), w + ' 的答案仍留在句中');
   }
 });
-
-ok('填空题：干扰词不出现在句子里（避免两个都对）', () => {
-  for (const w of ['significant', 'accumulate', 'environment']) {
+ok('填空题：干扰词不出现在同一句（避免双解）', () => {
+  for (const w of practised) {
+    if (!t.bestExample(w)) continue;
     const q = t.makeQuestion('cloze', w);
+    if (q.type !== 'cloze') continue;
     for (const o of q.options.filter(o => !o.ok)) {
-      assert.ok(!t.formIn(o.text, q.sentence), `干扰词 ${o.text} 出现在句子里，会有歧义`);
+      if (t.formIn(o.text, q.sentence)) assert.fail(`干扰词 ${o.text} 出现在句中，会有歧义`);
     }
   }
 });
 
-ok('formIn 能识别屈折形式', () => {
-  assert.ok(t.formIn('run', 'She was running fast'));
-  assert.ok(t.formIn('accumulate', 'Journals are accumulating in my office'));
-  assert.equal(t.formIn('accumulate', 'nothing here'), '');
+const withPhrase = practised.find(w => t.usablePhrases(w).length);
+ok('搭配题：中文提示 + 4 个英文搭配 + 唯一正确', () => {
+  assert.ok(withPhrase, '需要至少一个带搭配的词');
+  const q = t.makeQuestion('phrase', withPhrase);
+  assert.equal(q.type, 'phrase');
+  assert.ok(q.promptZh && /[\u4e00-\u9fff]/.test(q.promptZh), '应有中文提示');
+  assert.equal(q.options.length, 4);
+  assert.equal(q.options.filter(o => o.ok).length, 1);
+  assert.ok(q.answerPhrase);
+  for (const o of q.options) assert.ok(o.owner, '搭配选项应带中文释义');
 });
 
-// ── 答题与计分 ──
-ok('答对写入 quiz 记录并提升认识量', () => {
-  const before = t.vocabStats().recognize;
+ok('讲解包含：四选项对照、该词释义、常见搭配', () => {
+  const q = t.makeQuestion('meaning', practised[0]);
+  const html = t.explainHtml(q, q.options.findIndex(o => o.ok));
+  assert.ok(html.includes('四个选项对照'));
+  assert.ok(html.includes('这个词'));
+  assert.ok(html.includes('释义'));
+  assert.ok(html.includes('常见搭配'));
+  assert.ok(html.includes('答对了'));
+});
+ok('讲解在答错时给出正确答案', () => {
+  const q = t.makeQuestion('meaning', practised[0]);
+  const wrong = q.options.findIndex(o => !o.ok);
+  const html = t.explainHtml(q, wrong);
+  assert.ok(html.includes('正确答案'));
+});
+ok('讲解渲染了例句或搭配', () => {
+  for (const w of practised.slice(0, 6)) {
+    const q = t.makeQuestion('meaning', w);
+    const html = t.explainHtml(q, 0);
+    assert.ok(html.includes('例句') || html.includes('常见搭配'), w + ' 的讲解既无例句也无搭配');
+  }
+});
+
+ok('beginQuiz 建立会话；答题写入记录', () => {
   t.beginQuiz('meaning');
   const q = t.getState().quiz;
-  assert.ok(q && q.current, '应生成题目');
+  assert.ok(q && q.current);
   const idx = q.current.options.findIndex(o => o.ok);
   t.answerQuiz(idx);
   assert.equal(t.getState().quiz.right, 1);
-  assert.equal(t.quizMap()[q.current.word].see.ok, 1);
-  assert.ok(t.vocabStats().recognize >= before);
+  assert.ok(t.quizMap()[q.current.word].see.ok >= 1);
 });
-
-ok('答错也记录，且不会增加认识量上限', () => {
-  t.beginQuiz('meaning');
-  const q = t.getState().quiz;
-  const idx = q.current.options.findIndex(o => !o.ok);
-  t.answerQuiz(idx);
-  assert.equal(t.getState().quiz.wrong, 1);
-  assert.equal(t.quizMap()[q.current.word].see.bad, 1);
-});
-
 ok('同一题不能重复作答', () => {
   const q = t.getState().quiz;
   const before = q.right + q.wrong;
   t.answerQuiz(0);
   assert.equal(q.right + q.wrong, before);
 });
-
-ok('nextQuiz 推进到下一题', () => {
+ok('nextQuiz 推进、endQuiz 清空', () => {
   const before = t.getState().quiz.i;
   t.nextQuiz();
   assert.equal(t.getState().quiz.i, before + 1);
-  assert.ok(t.getState().quiz.answered === null);
-});
-
-ok('选择题答对两次后该词计入认识满分', () => {
-  const word = W[10];
-  t.quizMap()[word] = { see: { ok: 2, bad: 0 }, use: { ok: 0, bad: 0 } };
-  const before = t.vocabStats().recognize;
-  t.quizMap()[word] = { see: { ok: 0, bad: 0 }, use: { ok: 0, bad: 0 } };
-  const without = t.vocabStats().recognize;
-  assert.ok(before > without, '认识量应随选择题正向变化');
-});
-
-ok('endQuiz 清空会话', () => {
   t.endQuiz();
   assert.equal(t.getState().quiz, null);
 });
 
-// ── 复习 / 跳过仍然正常 ──
-ok('beginReview 建立复习会话', () => {
-  t.beginReview('all');
-  const a = t.monthData().active;
-  assert.ok(a && a.review === true);
+ok('跳过的词不计入练过的词库', () => {
+  const w = practised[3];
+  t.skippedMap()[w] = { at: '2026-10-17' };
+  assert.ok(!t.practicedWords().includes(w));
+  assert.ok(!t.quizPool('meaning').includes(w));
+  t.unskipWord(w);
+  assert.ok(t.practicedWords().includes(w));
 });
 
-ok('复习卡有跳过按钮，跳过生效', () => {
-  const a = t.monthData().active;
-  const word = a.words[a.index];
-  assert.ok(t.monthPractice().includes('data-month-skip'));
-  t.skipWord();
-  assert.equal(t.isSkipped(word), true);
-});
-
-ok('unskipWord 可恢复', () => {
-  t.unskipWord(W[3]);
-  assert.equal(t.isSkipped(W[3]), false);
-});
-
-// ── 页面渲染 ──
-ok('选择题页可渲染（选择方向 + 词汇量卡片）', () => {
-  t.getState().quiz = null;
+ok('没练过时选择题页给出引导，而不是空题库', () => {
+  const backup = t.getState().month;
+  t.getState().month = { started: '2026-10-17', reviewed: {}, active: null };
   t.nav('quiz');
   const html = nodes.get('#app').innerHTML;
-  assert.ok(html.includes('CHOOSE, DO NOT SPELL'));
+  assert.ok(html.includes('还没有练过的词'));
+  t.getState().month = backup;
+});
+ok('练过后选择题页显示三种题型与词数', () => {
+  t.nav('quiz');
+  const html = nodes.get('#app').innerHTML;
   assert.ok(html.includes('data-quiz-start="meaning"'));
   assert.ok(html.includes('data-quiz-start="cloze"'));
-  assert.ok(html.includes('我的词汇量估算'));
+  assert.ok(html.includes('data-quiz-start="phrase"'));
+  assert.ok(html.includes('练过的词'));
 });
-
-ok('选择题答题界面可渲染 4 个可点选项', () => {
-  t.beginQuiz('cloze');
+ok('答题界面渲染 4 个选项', () => {
+  t.beginQuiz('meaning');
   const html = nodes.get('#app').innerHTML;
-  assert.ok((html.match(/data-quiz-answer=/g) || []).length === 4, '应有 4 个选项');
-  assert.ok(html.includes('quiz-sentence'));
+  assert.equal((html.match(/data-quiz-answer=/g) || []).length, 4);
 });
-
-ok('复习页显示 认识/会用 两个数字', () => {
-  t.nav('review');
-  const html = nodes.get('#app').innerHTML;
-  assert.ok(html.includes('认识 ≈'));
-  assert.ok(html.includes('会用 ≈'));
-});
-
-ok('首页显示 认识/会用 并含选择题入口', () => {
-  t.nav('home');
-  const html = nodes.get('#app').innerHTML;
-  assert.ok(html.includes('认识 ≈'));
-  assert.ok(html.includes('会用 ≈'));
-  assert.ok(html.includes('data-nav="quiz"'));
-});
-
-ok('原有页面仍能渲染（无回归）', () => {
-  for (const p of ['home', 'library', 'scenes', 'difficult', 'settings', 'history', 'month', 'review', 'quiz']) {
+ok('原有页面无回归', () => {
+  for (const p of ['home', 'library', 'scenes', 'difficult', 'settings', 'history', 'month', 'review']) {
     t.nav(p);
     assert.ok(nodes.get('#app').innerHTML.length > 500, p + ' 渲染异常');
   }

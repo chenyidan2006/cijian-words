@@ -264,48 +264,172 @@ function goodSentence(word){
 function distractors(word,n=3){
  const base=lexical(word),pos=posOf(word),len=word.length;
  const i=orderedWords.indexOf(word);
- const cands=[];
- for(let d=1;d<=1400&&cands.length<n*8;d+=1){
-  for(const w2 of [orderedWords[i-d],orderedWords[i+d]]){
-   if(!w2||w2===word)continue;
-   const e2=lexical(w2);
-   if(!shortMeaning(w2))continue;
-   if(posOf(w2)!==pos)continue;
-   if(Math.abs(w2.length-len)>4)continue;
-   cands.push(w2);}}
- // 同域词优先
+ const seen=new Set([word]);
+ const out=[];
+ // 逐级放宽：同词性且长度接近 -> 同词性 -> 任意词
+ const tiers=[[pos,4],[pos,12],[pos,99],['',99]];
+ for(const [p,maxDelta] of tiers){
+  for(let d=1;d<=2600&&out.length<n*6;d++){
+   for(const w2 of [orderedWords[i-d],orderedWords[i+d]]){
+    if(!w2||seen.has(w2))continue;
+    if(!shortMeaning(w2))continue;
+    if(p&&posOf(w2)!==p)continue;
+    if(maxDelta<99&&Math.abs(w2.length-len)>maxDelta)continue;
+    seen.add(w2);out.push(w2);
+   }
+  }
+  if(out.length>=n)break;
+ }
  const doms=new Set(base.domains||[]);
- const sameDom=cands.filter(w2=>(lexical(w2).domains||[]).some(d=>doms.has(d)));
- const pool=[...new Set([...sameDom,...cands])];
+ const sameDom=out.filter(w2=>(lexical(w2).domains||[]).some(d=>doms.has(d)));
+ const pool=[...new Set([...sameDom,...out])];
  return shuffleList(pool).slice(0,n);}
 
+// ── 例子回退：保证每个词都能找到可用的例子 ─────────────────────────────────
+function lessonOf(word){const k=String(word).toLowerCase();
+ return allLessons().find(l=>String(l.word||'').toLowerCase()===k);}
+function completeSentences(word){const forms=formsOf(word);
+ return (lexical(word).examples||[]).map(s=>String(s).trim()).filter(t=>{
+  const n=t.split(/\s+/).filter(Boolean).length;
+  if(t.length<25||t.length>170||n<5)return false;
+  if(!/^[A-Z"'(]/.test(t)||!/[.!?][")']?$/.test(t))return false;
+  if(/[\u4e00-\u9fff]/.test(t))return false;
+  return forms.some(f=>f.length>1&&new RegExp('\\b'+escRe(f)+'\\b','i').test(t));});}
+function fragments(word){const forms=formsOf(word);
+ return (lexical(word).examples||[]).map(s=>String(s).trim()).filter(t=>{
+  if(/[\u4e00-\u9fff]/.test(t))return false;
+  return forms.some(f=>f.length>1&&new RegExp('\\b'+escRe(f)+'\\b','i').test(t));});}
+function usablePhrases(word){const forms=formsOf(word);
+ return (lexical(word).phrases||[]).map(p=>({en:String(p.en||'').trim(),zh:String(p.zh||'').trim()}))
+  .filter(p=>{const n=p.en.split(/\s+/).filter(Boolean).length;
+   return n>=2&&n<=5&&(p.zh.match(/[\u4e00-\u9fff]/g)||[]).length>=2&&
+    forms.some(f=>f.length>1&&new RegExp('\\b'+escRe(f)+'\\b','i').test(p.en));});}
+
+// 四级回退：挑选该词最好的一个例子
+function bestExample(word){
+ const l=lessonOf(word);
+ if(l)return {type:'lesson',en:l.sentence,zh:l.zh,phrase:l.phrase,tip:l.tip};
+ const cs=completeSentences(word);
+ if(cs.length)return {type:'sentence',en:cs[0]};
+ const ph=usablePhrases(word);
+ if(ph.length)return {type:'phrase',en:ph[0].en,zh:ph[0].zh};
+ const fr=fragments(word);
+ if(fr.length)return {type:'fragment',en:fr[0]};
+ return null;}
+
+// ── 只考练过的词 ────────────────────────────────────────────────────────────
+function practicedSet(){
+ const m=state.month||{},set=new Set();
+ for(const k of Object.keys(m.reviewed||{}))set.add(k.toLowerCase());
+ for(const k of Object.keys(m.quiz||{}))set.add(k.toLowerCase());
+ for(const k of Object.keys(m.skipped||{}))set.add(k.toLowerCase());
+ for(const l of allLessons()){const p=pFor(l.id);if(p.attempts)set.add(String(l.word||'').toLowerCase());}
+ return set;}
+
+const canonMap=new Map(window.CATALOG.map(c=>[c.word.toLowerCase(),c.word]));
+function practicedWords(){
+ const out=[];
+ for(const low of practicedSet()){const w=canonMap.get(low);if(w&&!isSkipped(w))out.push(w);}
+ return out;}
+
 function quizPool(type){
- return orderedWords.filter(w=>{if(state.month?.skipped?.[w])return false;
-  if(type==='meaning')return !!shortMeaning(w);
-  return !!goodSentence(w);});}
+ const words=practicedWords();
+ if(type==='meaning')return words.filter(w=>!!shortMeaning(w));
+ if(type==='phrase')return words.filter(w=>usablePhrases(w).length>0&&!!shortMeaning(w));
+ return words.filter(w=>!!bestExample(w));}
+
+
+function padOptions(word,opts){
+ const seen=new Set(opts.map(o=>o.text));
+ if(opts.length>=4)return opts;
+ for(const w2 of orderedWords){
+  if(opts.length>=4)break;
+  if(w2===word)continue;
+  const m2=shortMeaning(w2);if(!m2||seen.has(m2))continue;
+  seen.add(m2);opts.push({text:m2,ok:false,owner:w2});
+ }
+ return opts;}
 
 function makeQuestion(type,word){
  if(type==='meaning'){
   const right=shortMeaning(word)||'词义待核对';
-  const opts=[{text:right,ok:true}];
-  for(const w2 of distractors(word,10)){if(opts.length>=4)break;
-   const m2=shortMeaning(w2);if(!m2||m2===right||opts.some(o=>o.text===m2))continue;opts.push({text:m2,ok:false});}
-  return {word,type,kind:'see',question:word,options:shuffleList(opts)};}
- const hit=goodSentence(word);
- if(!hit){
-  // 没有合适的例句时退化为“看英文选中文”，保证题型稳定且不计为会用
-  const right=shortMeaning(word)||'词义待核对',opts=[{text:right,ok:true}];
-  for(const w2 of distractors(word,10)){if(opts.length>=4)break;
-   const m2=shortMeaning(w2);if(!m2||m2===right||opts.some(o=>o.text===m2))continue;opts.push({text:m2,ok:false});}
-  return {word,type:'meaning',kind:'see',question:word,options:shuffleList(opts)};}
- const options=[{text:word,ok:true}];
- for(const w2 of distractors(word,12)){if(options.length>=4)break;
-  if(options.some(o=>o.text===w2))continue;if(formIn(w2,hit.sentence))continue;
-  options.push({text:w2,ok:false});}
- const sentence=hit.sentence.replace(new RegExp('(^|[^A-Za-z])'+escRe(hit.form)+'(?![A-Za-z\'’])','i'),
-  (all,pre)=>pre+'________');
- const shown=sentence.charAt(0).toUpperCase()+sentence.slice(1);
- return {word,type:'cloze',kind:'use',sentence:shown,hint:shortMeaning(word),options:shuffleList(options)};}
+  const opts=[{text:right,ok:true,owner:word}];
+  for(const w2 of distractors(word,12)){if(opts.length>=4)break;
+   const m2=shortMeaning(w2);if(!m2||m2===right||opts.some(o=>o.text===m2))continue;
+   opts.push({text:m2,ok:false,owner:w2});}
+  return {word,type,kind:'see',question:word,options:shuffleList(padOptions(word,opts))};}
+
+ if(type==='phrase'){
+  const phs=usablePhrases(word);
+  const right=phs[Math.floor(Math.random()*phs.length)];
+  const opts=[{text:right.en,ok:true,owner:right.zh}];
+  for(const w2 of distractors(word,16)){if(opts.length>=4)break;
+   const p2=usablePhrases(w2);if(!p2.length)continue;
+   const pick=p2[0];
+   if(opts.some(o=>o.text.toLowerCase()===pick.en.toLowerCase()))continue;
+   opts.push({text:pick.en,ok:false,owner:pick.zh});}
+  return {word,type,kind:'use',promptZh:right.zh,answerPhrase:right.en,hint:shortMeaning(word),options:shuffleList(padOptions(word,opts))};}
+
+ // cloze：优先用手写搭配句（有中文），其次完整句，再次词典搭配
+ const ex=bestExample(word);
+ if(ex&&ex.type==='lesson'){
+  const form=formIn(word,ex.sentence)||ex.phrase;
+  const sentence=ex.sentence.replace(new RegExp('(^|[^A-Za-z])'+escRe(form)+'([^A-Za-z]|$)','i'),(all,a,b)=>a+'________'+b);
+  const opts=[{text:word,ok:true,owner:shortMeaning(word)}];
+  for(const w2 of distractors(word,16)){if(opts.length>=4)break;
+   if(opts.some(o=>o.text===w2))continue;if(formIn(w2,ex.sentence))continue;
+   opts.push({text:w2,ok:false,owner:shortMeaning(w2)});}
+  return {word,type:'cloze',kind:'use',sentence,zh:ex.zh,hint:shortMeaning(word),options:shuffleList(opts)};}
+ if(ex&&ex.type==='sentence'){
+  const form=formIn(word,ex.en);
+  const sentence=ex.en.replace(new RegExp('(^|[^A-Za-z])'+escRe(form)+'([^A-Za-z]|$)','i'),(all,a,b)=>a+'________'+b);
+  const opts=[{text:word,ok:true,owner:shortMeaning(word)}];
+  for(const w2 of distractors(word,16)){if(opts.length>=4)break;
+   if(opts.some(o=>o.text===w2))continue;if(formIn(w2,ex.en))continue;
+   opts.push({text:w2,ok:false,owner:shortMeaning(w2)});}
+  return {word,type:'cloze',kind:'use',sentence,hint:shortMeaning(word),options:shuffleList(opts)};}
+ if(ex&&(ex.type==='phrase'||ex.type==='fragment')){
+  const form=formIn(word,ex.en);
+  const shown=ex.en.replace(new RegExp('(^|[^A-Za-z])'+escRe(form)+'([^A-Za-z]|$)','i'),(all,a,b)=>a+'________'+b);
+  const opts=[{text:word,ok:true,owner:shortMeaning(word)}];
+  for(const w2 of distractors(word,16)){if(opts.length>=4)break;
+   if(opts.some(o=>o.text===w2))continue;if(formIn(w2,ex.en))continue;
+   opts.push({text:w2,ok:false,owner:shortMeaning(w2)});}
+  return {word,type:'cloze',kind:'use',sentence:shown,zh:ex.zh||'',hint:shortMeaning(word),options:shuffleList(opts)};}
+
+ const right=shortMeaning(word)||'词义待核对',opts=[{text:right,ok:true,owner:word}];
+ for(const w2 of distractors(word,12)){if(opts.length>=4)break;
+  const m2=shortMeaning(w2);if(!m2||m2===right||opts.some(o=>o.text===m2))continue;
+  opts.push({text:m2,ok:false,owner:w2});}
+ return {word,type:'meaning',kind:'see',question:word,options:shuffleList(padOptions(word,opts))};}
+
+// ── 讲解：选项对照 + 词条讲解 ────────────────────────────────────────────────
+function explainHtml(c,chosen){
+ const right=c.options.find(o=>o.ok)||{};
+ const e=lexical(c.word);
+ const rows=c.options.map(o=>{
+  const cls=o.ok?'right':(o===c.options[chosen]?'wrong':'');
+  let note='';
+  if(c.type==='meaning')note=o.owner&&o.owner!==c.word?`（${esc(o.owner)}）`:`（${esc(c.word)}）`;
+  else if(c.type==='phrase')note=o.owner?`— ${esc(o.owner)}`:'';
+  else note=o.owner?`— ${esc(o.owner)}`:'';
+  return `<li class="${cls}">${esc(o.text)} <small>${note}</small></li>`;}).join('');
+ const def=(e.definition||'').split('\n').filter(Boolean)[0];
+ const phs=usablePhrases(c.word).slice(0,4);
+ const ex=bestExample(c.word);
+ const srcLabel={lesson:'手写搭配句',sentence:'WordNet 完整句',phrase:'词典搭配',fragment:'WordNet 例句片段'}[ex?.type]||'';
+ return `<div class="quiz-explain">
+  <div class="explain-head">${c.options[chosen]&&c.options[chosen].ok?'✓ 答对了':'✗ 正确答案：'+esc(right.text||'')}</div>
+  <div class="explain-section"><span class="explain-label">四个选项对照</span><ul class="explain-options">${rows}</ul></div>
+  <div class="explain-section"><span class="explain-label">${esc(c.word)} 这个词</span>
+   <p class="explain-line"><strong>释义</strong>：${esc(shortMeaning(c.word)||'词形待核对')}</p>
+   ${def?`<p class="explain-line"><strong>英文释义</strong>：${esc(def)}</p>`:''}
+   ${phs.length?`<p class="explain-line"><strong>常见搭配</strong>：${phs.map(p=>esc(p.en)+'（'+esc(p.zh)+'）').join('；')}</p>`:'<p class="explain-line"><strong>常见搭配</strong>：词库暂无</p>'}
+   ${ex?`<p class="explain-line"><strong>例句</strong>：${esc(ex.en)}${ex.zh?'<br>'+esc(ex.zh):''} <small class="src">（${esc(srcLabel)}）</small></p>`:''}
+   ${ex&&ex.tip?`<p class="explain-line"><strong>用法</strong>：${esc(ex.tip)}</p>`:''}
+  </div>
+  ${c.sentence&&c.zh?`<div class="explain-section"><span class="explain-label">整句意思</span><p class="explain-line">${esc(c.sentence.replace('________',c.word))}<br>${esc(c.zh)}</p></div>`:''}
+ </div>`;}
 
 function noteQuiz(word,kind,ok){const q=quizMap(),r=q[word]||(q[word]={see:{ok:0,bad:0},use:{ok:0,bad:0}});
  r[kind]=r[kind]||{ok:0,bad:0};r[kind][ok?'ok':'bad']++;r.last=day();}
@@ -367,23 +491,40 @@ function reviewPage(){const m=monthData(),sk=m.skipped||{},v=vocabStats();
 
 // ── 选择题页面 ──────────────────────────────────────────────────────────────
 function quizPage(){const q=state.quiz,v=vocabStats();
+ const practiced=practicedWords();
+ const nMeaning=quizPool('meaning').length,nCloze=quizPool('cloze').length,nPhrase=quizPool('phrase').length;
+ const totalPracticed=practiced.length;
+
  if(!q||q.finished||!q.current){
   const done=q&&q.finished;
-  return intro('CHOOSE, DO NOT SPELL','选一选，不用拼写。','看英文选中文，是“认识”；看句子选单词，是“会用”。')
+  if(!totalPracticed)return intro('CHOOSE, DO NOT SPELL','选一选，不用拼写。','题目只从你练过的词里出，不会考没背过的内容。')
+   +`<section class="setting-card"><h2>还没有练过的词</h2><p>先去「开始学习」里练一小段——题目的题库只取你已经背过的词，这样每道题都能接上你正在学的内容。</p><div class="button-row"><button class="primary" data-nav="home">去练一组 ${icon('arrow')}</button><button class="secondary" data-nav="review">看看复习页</button></div></section>`
+   +vocabCard();
+  return intro('CHOOSE, DO NOT SPELL','选一选，不用拼写。','题目只从你练过的词里出：练过 ${totalPracticed} 个词。')
   +(done?`<section class="setting-card"><h2>这一组选完了。</h2><p>答对 ${q.right} 题，答错 ${q.wrong} 题。结果已经计入词汇量估算。</p><div class="button-row"><button class="primary" data-quiz-start="${q.type}">再来一组 ${icon('arrow')}</button><button class="secondary" id="quiz-end">回到选择页</button></div></section>`:'')
-  +`<section class="setting-card"><h2>选一个方向</h2><p>“看英文选中文”测的是认出词义，量大、较轻松；“看句子选单词”要从语义和搭配里挑出正确的词，更接近真的会用。两种都不需要键盘输入。</p><div class="button-row"><button class="primary" data-quiz-start="meaning">看英文选中文 · 认识 ${icon('arrow')}</button><button class="secondary" data-quiz-start="cloze">看句子选单词 · 会用</button></div></section>`
-  +`<section class="stats"><div class="stat"><div class="stat-label">选择题已答对（认识）</div><div class="stat-number">${v.seeOk}<small>词</small></div></div><div class="stat"><div class="stat-label">选择题已答对（填空）</div><div class="stat-number">${v.clozeOk}<small>词</small></div></div><div class="stat"><div class="stat-label">会用 ≈</div><div class="stat-number">${v.productive}<small>词</small></div></div></section>`
+  +`<section class="setting-card"><h2>选一个方向</h2><p>三种都不需要键盘输入。题量按你<b>已经练过的词</b>算，没背过的词不会出现。</p><div class="button-row">
+   <button class="primary" data-quiz-start="meaning" ${nMeaning?'':'disabled'}>看英文选中文 · 认识（${nMeaning} 词）</button>
+   <button class="secondary" data-quiz-start="cloze" ${nCloze?'':'disabled'}>看句子选单词 · 会用（${nCloze} 词）</button>
+   <button class="secondary" data-quiz-start="phrase" ${nPhrase?'':'disabled'}>看中文选搭配 · 短语（${nPhrase} 词）</button>
+  </div></section>`
+  +`<section class="stats"><div class="stat"><div class="stat-label">练过的词</div><div class="stat-number">${totalPracticed}<small>个</small></div></div><div class="stat"><div class="stat-label">选择题答对（认识）</div><div class="stat-number">${v.seeOk}<small>词</small></div></div><div class="stat"><div class="stat-label">选择题答对（填空/搭配）</div><div class="stat-number">${v.clozeOk}<small>词</small></div></div></section>`
   +vocabCard();}
+
  const c=q.current,answered=q.answered;
  const opts=c.options.map((o,i)=>{
   let cls='';
   if(answered!==null){if(o.ok)cls='right';else if(i===answered)cls='wrong';}
   return `<button ${answered===null?`data-quiz-answer="${i}"`:'disabled'} class="${cls}">${esc(o.text)}</button>`;}).join('');
- const body=c.type==='meaning'
-  ? `<div class="task-title">这个单词，是什么意思？</div><div class="simple-answer"><h2>${esc(c.question)}</h2>${lexical(c.question).phonetic?'<p>/'+esc(lexical(c.question).phonetic)+'/</p>':''}</div>`
-  : `<div class="task-title">根据句子的意思，选哪个词？</div><div class="quiz-sentence">${esc(c.sentence).replace('________','<b>________</b>')}</div><p class="quiz-meaning">提示：${esc(c.hint||'（无中文提示）')}</p>`;
- return `<div class="practice-wrap"><div class="practice-top"><button class="text-btn" id="quiz-end">← 结束这组</button><span>${c.type==='meaning'?'看英文选中文':'看句子选单词'} · ${q.i+1} / ${q.queue.length}</span><span>答对 ${q.right} · 答错 ${q.wrong}</span></div><section class="exercise oral-card">${body}<div class="quiz-options">${opts}</div>${answered!==null?`<div class="feedback ${c.options[answered].ok?'':'wrong'}"><strong>${c.options[answered].ok?'选对了。':'这次不对，正确答案是：'+esc(c.options.find(o=>o.ok)?.text||'')+'。'}</strong>${c.type==='cloze'?`<div class="example"><div class="en">${esc(c.sentence.replace('________',c.word))}</div></div>`:''}${c.type==='meaning'?`<p>${esc(c.question)}：${esc(c.options.find(o=>o.ok)?.text||'')}</p>`:''}</div><div class="button-row"><button class="primary" id="quiz-next">${q.i+1>=q.queue.length?'看结果':'下一题'} ${icon('arrow')}</button></div>`:''}</section></div>`;}
-
+ let body='';
+ if(c.type==='meaning'){
+  body=`<div class="task-title">这个单词，是什么意思？</div><div class="simple-answer"><h2>${esc(c.question)}</h2>${lexical(c.question).phonetic?'<p>/'+esc(lexical(c.question).phonetic)+'/</p>':''}</div>`;
+ }else if(c.type==='phrase'){
+  body=`<div class="task-title">这句话，用哪个英文搭配说？</div><div class="simple-answer"><h2>${esc(c.promptZh)}</h2><p class="quiz-meaning">提示：这个词是 ${esc(c.hint||'')}</p></div>`;
+ }else{
+  body=`<div class="task-title">根据句子的意思，选哪个词？</div><div class="quiz-sentence">${esc(c.sentence).replace('________','<b>________</b>')}</div><p class="quiz-meaning">提示：${esc(c.hint||'（无中文提示）')}</p>`;
+ }
+ const label={meaning:'看英文选中文',cloze:'看句子选单词',phrase:'看中文选搭配'}[c.type]||'选择题';
+ return `<div class="practice-wrap"><div class="practice-top"><button class="text-btn" id="quiz-end">← 结束这组</button><span>${label} · ${q.i+1} / ${q.queue.length}</span><span>答对 ${q.right} · 答错 ${q.wrong}</span></div><section class="exercise oral-card">${body}<div class="quiz-options">${opts}</div>${answered!==null?`${explainHtml(c,answered)}<div class="button-row"><button class="primary" id="quiz-next">${q.i+1>=q.queue.length?'看结果':'下一题'} ${icon('arrow')}</button></div>`:''}</section></div>`;}
 function monthBanner(){const seen=Object.keys(state.month?.reviewed||{}).length;return `<section class="month-banner"><div><div class="eyebrow">AT YOUR OWN PACE · 自由刷词</div><h2>想练多少，就接着练多少。</h2><p>全部 9389 词 · 常用 7956 词 · 不练拼写 · 不设每日配额</p><small>已覆盖 ${seen} / 9389；每组20词便于暂停，完成后可继续下一组。</small></div><button class="primary" data-nav="month">继续刷词 ${icon('arrow')}</button></section>`;}
 function oralPractice(){const a=state.active,l=lesson(a.queue[a.index]);if(!l){state.active=null;save();return home();}const f=taskUI.feedback;return `<div class="practice-wrap"><div class="practice-top"><button class="text-btn" id="pause-practice">← 暂停</button><span>${esc(l.scene)} · 连续练习</span><button class="text-btn" data-save-id="${attr(l.id)}">${state.saved.includes(l.id)?'★ 已收藏':'☆ 收藏'}</button></div><section class="exercise oral-card"><div class="task-title">这句话，你会怎么说？</div><h2>${esc(l.zh)}</h2>${!f?`<p class="oral-instruction">在心里想，或说出来。英文先藏起来。</p><div class="recall-space">${icon('chat')}</div>${taskUI.hint?'<div class="hint">提示：'+esc(l.phraseZh)+'</div>':''}<div class="oral-buttons"><button class="primary" id="oral-check">点开英文，核对 ${icon('arrow')}</button><button class="text-btn" id="get-hint">给点提示</button></div>`:`<div class="feedback"><div class="answer">${esc(l.phrase)}</div><div class="example"><div class="en">${esc(l.sentence)}</div></div><p class="usage-tip">${esc(l.tip)}</p><div class="self-rate"><button class="primary" data-self-rate="yes">${taskUI.hint?'提示后会用':'会用'}，下一条 →</button><button class="secondary" data-self-rate="no">还不会，下一条 →</button></div><div class="button-row"><button class="text-btn" data-speak-id="${attr(l.id)}">听一听</button></div>${l.bookPage||l.examSource?'<details class="lex-fold"><summary>查看题目来源与更多说明</summary>'+sourceInfo(l)+'</details>':''}</div>`}</section></div>`;}
 function oxfordUrl(word){return word==='be'?'https://www.oxfordlearnersdictionaries.com/definition/english/be_1':'https://www.oxfordlearnersdictionaries.com/search/english/?q='+encodeURIComponent(word);}
