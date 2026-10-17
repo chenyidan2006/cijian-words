@@ -39,10 +39,10 @@ vm.runInContext(`(function(){
   if (!/render\(\);\s*(?:ensureNotes\(\);\s*)?(?:ensureZh\(\);\s*)?\}\)\(\);\s*$/.test(source)) throw new Error('app.js 尾部结构不符合预期');
   source = source.replace(/render\(\);\s*(?:ensureNotes\(\);\s*)?(?:ensureZh\(\);\s*)?\}\)\(\);\s*$/, exp);
   vm.runInContext(source, ctx);
-  return { t: ctx.window.test, nodes };
+  return { t: ctx.window.test, nodes, win: ctx.window };
 }
 
-const { t, nodes } = boot();
+const { t, nodes, win } = boot();
 const W = t.orderedWords;
 let n = 0;
 const ok = (name, fn) => { fn(); n++; console.log('  ✓ ' + name); };
@@ -257,6 +257,21 @@ ok('原有点击流程未受影响', () => {
   t.beginQuiz('meaning');
   assert.ok(t.getState().quiz && t.getState().quiz.current);
   t.endQuiz();
+});
+
+ok('只有 core 数据时（notes 未到）所有页面都能渲染', () => {
+  const savedNotes = win.LEXICON_NOTES, savedZh = win.ZH_LEXICON;
+  try {
+    win.LEXICON_NOTES = undefined;
+    win.ZH_LEXICON = undefined;
+    for (const p of ['home', 'library', 'scenes', 'difficult', 'settings', 'history', 'month', 'review', 'quiz']) {
+      t.nav(p);
+      assert.ok(nodes.get('#app').innerHTML.length > 300, p + ' 在 core-only 状态下渲染失败');
+    }
+  } finally {
+    win.LEXICON_NOTES = savedNotes;
+    win.ZH_LEXICON = savedZh;
+  }
 });
 
 ok('原有页面无回归', () => {
