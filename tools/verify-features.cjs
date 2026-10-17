@@ -20,11 +20,11 @@ function boot() {
     Date, console, setTimeout: () => 1, clearTimeout() {}, Map, Set, Blob, URL, FormData: class {},
   };
   vm.createContext(ctx);
-  for (const name of ['catalog.js', 'enrichment.js', 'situations.js', 'lessons.js', 'book-lessons.js', 'source-materials.js', 'exam-lessons.js'])
+  for (const name of ['catalog.js', 'enrichment.js', 'zh-lexicon.js', 'situations.js', 'lessons.js', 'book-lessons.js', 'source-materials.js', 'exam-lessons.js'])
     vm.runInContext(fs.readFileSync(path.join(SITE, name), 'utf8'), ctx);
 
   let source = fs.readFileSync(path.join(SITE, 'app.js'), 'utf8');
-  const exp = `window.test={skipWord,unskipWord,beginReview,reviewPool,vocabStats,reviewPage,isSkipped,skippedMap,quizMap,monthData,monthPractice,beginCatalog,beginMonth,nav,render,orderedWords,beginQuiz,makeQuestion,answerQuiz,nextQuiz,endQuiz,quizPool,firstMeaning,shortMeaning,posOf,formIn,formsOf,quizPage,practicedWords,bestExample,explainHtml,usablePhrases,getState:()=>state};render();\n})();`;
+  const exp = `window.test={skipWord,unskipWord,beginReview,reviewPool,vocabStats,reviewPage,isSkipped,skippedMap,quizMap,monthData,monthPractice,beginCatalog,beginMonth,nav,render,orderedWords,beginQuiz,makeQuestion,answerQuiz,nextQuiz,endQuiz,quizPool,firstMeaning,shortMeaning,posOf,formIn,formsOf,quizPage,practicedWords,bestExample,explainHtml,usablePhrases,zhOf,zhExamples,zhHook,zhExplain,getState:()=>state,ZH:()=>window.ZH_LEXICON};render();\n})();`;
   if (!/render\(\);\s*\}\)\(\);\s*$/.test(source)) throw new Error('app.js 尾部结构不符合预期');
   source = source.replace(/render\(\);\s*\}\)\(\);\s*$/, exp);
   vm.runInContext(source, ctx);
@@ -195,6 +195,29 @@ ok('答题界面渲染 4 个选项', () => {
   const html = nodes.get('#app').innerHTML;
   assert.equal((html.match(/data-quiz-answer=/g) || []).length, 4);
 });
+// ── 中文讲解数据（Open Dictionary）──
+ok('双语例句数据已载入且有覆盖', () => {
+  const Z = t.ZH() || {};
+  const n = Object.keys(Z).length;
+  assert.ok(n > 8000, '命中词条应超过 8000，实际 ' + n);
+  const withZh = Object.values(Z).filter(v => (v.ex || []).some(e => e.zh)).length;
+  assert.ok(withZh > 8000, '带中文译文的例句应超过 8000，实际 ' + withZh);
+});
+ok('讲解含记忆线索或用法说明，且署名来源', () => {
+  const word = practised.find(w => t.zhHook(w)) || practised[0];
+  const q = t.makeQuestion('meaning', word);
+  const html = t.explainHtml(q, q.options.findIndex(o => o.ok));
+  assert.ok(html.includes('记忆线索') || html.includes('用法'), '讲解缺少讲解字段');
+  assert.ok(html.includes('Open Dictionary'), '缺少来源署名');
+});
+ok('填空题优先使用双语例句', () => {
+  const w2 = practised.find(w => t.zhExamples(w).length) || W.find(w => t.zhExamples(w).length);
+  assert.ok(w2, '应有带双语例句的词');
+  const q = t.makeQuestion('cloze', w2);
+  assert.equal(q.type, 'cloze');
+  assert.ok(q.zh, '双语例句的题目应带中文译文');
+});
+
 ok('原有页面无回归', () => {
   for (const p of ['home', 'library', 'scenes', 'difficult', 'settings', 'history', 'month', 'review']) {
     t.nav(p);

@@ -39,3 +39,17 @@
 
 批量匹配的参考内容未逐条人工校对，包含专业与较少见表达；不能视为全部经过人工筛选的日常高频搭配。
 本站不是任何官方备考产品，与上述词典、教材的出版方无隶属关系。
+
+## Open Dictionary（CC BY-SA 4.0）
+
+讲解、记忆线索、学习者释义与中英双语例句来自
+[Open Dictionary](https://github.com/ahpxex/open-dictionary)（v2.0，简体中文定义语言构建）。
+
+- 源数据：English Wiktionary（https://en.wiktionary.org），由 Wiktionary 贡献者创作，CC BY-SA 4.0 与 GFDL 双许可
+- 提取工具：Wiktextract（https://github.com/tatuylonen/wiktextract）
+- 本项目对源内容做了实质性转换：词频筛选、结构重组、机器生成的学习者解释、记忆线索与例句
+- **数据许可以 CC BY-SA 4.0 发布**：https://creativecommons.org/licenses/by-sa/4.0/
+
+本站取用其中 8637 个词条（占本站词表 92%），并保留来源标注。若再分发这部分内容，
+请同样保留对 Wiktionary 的署名并以 CC BY-SA 4.0 共享。
+

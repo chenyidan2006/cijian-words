@@ -86,7 +86,7 @@ function examsPage(){
  return intro('LISTEN, READ, REPHRASE','换一种说法，也能认出来。','从你提供的考点资料出发，把词义、句型和语境一起练。')+`<div class="tabs"><button class="chip ${examView.source==='listening'?'selected':''}" data-exam-source="listening">听力 179 考点词</button><button class="chip ${examView.source==='reading'?'selected':''}" data-exam-source="reading">阅读高频考点词</button></div><section class="setting-card"><div class="card-label"><div><h2>${esc(src.label)}</h2><p>已导入 ${src.data.length} 条主词条 · 首批 ${ready.length} 道语境练习</p></div><button class="primary" id="start-exam">练一小组 ${icon('arrow')}</button></div><p>${examView.source==='listening'?'练习使用浏览器朗读本站编写的原句，再补全另一种表达；不是考试原音。':'原文件标题为“阅读高频考点词538”；按表格实际导入 '+src.data.length+' 条主词条，保留原资料的分类和排列。'}</p></section><div class="notice">原资料里既有近义表达，也有相关概念、上下位关系和逻辑线索。下面保留为参考，不直接当成等号；只有经过具体语境整理的条目才进入练习。</div><div class="filterbar"><input type="search" class="search" id="exam-search" aria-label="搜索考点及相关表达" placeholder="搜索考点词、中文或相关表达…" value="${attr(examView.q)}"></div><div class="section-head"><h2>原资料参考</h2><small>${items.length} 条结果 · ${ready.length} 道可练题</small></div><div class="exam-reference-list">${items.slice((examView.n-1)*25,examView.n*25).map(r=>{const ls=ready.filter(l=>l.sourceRecordId===r.id);return `<article class="exam-reference-row"><div class="exam-term"><b>${esc(r.word)}</b><small>${esc(r.meaning)}</small><span class="sub">${r.pdfPage?'PDF 第 '+r.pdfPage+' 页 · 第 '+r.number+' 条':'原表 '+r.table+' · 第 '+r.row+' 行 · 第 '+r.tier+' 类'}</span></div><div class="exam-related"><span class="eyebrow">资料中的相关表达</span><p>${esc(r.related)}</p></div><div>${ls.length?`<button class="mini" data-practice-id="${attr(ls[0].id)}">语境练习</button>`:'<span class="badge pending">参考条目</span>'}</div>${referenceNote(r)?'<div class="exam-correction">用法提醒：'+esc(referenceNote(r))+'</div>':''}</article>`;}).join('')||'<div class="empty">没有找到匹配条目。</div>'}</div><div class="pagination"><button class="mini" data-exam-page="-1" ${examView.n<=1?'disabled':''}>上一页</button><span>${examView.n} / ${pages}</span><button class="mini" data-exam-page="1" ${examView.n>=pages?'disabled':''}>下一页</button></div>`;
 }
 function history(){const days=new Set(state.sessions.map(s=>s.day)).size;const total=state.sessions.reduce((s,x)=>s+x.total,0);const independent=state.sessions.reduce((s,x)=>s+x.independent,0);return intro('SMALL STEPS, REAL PROGRESS','每一次想起，都算数。','记录实际练习，不用连续打卡衡量你的努力。')+`<section class="stats"><div class="stat"><div class="stat-label">有练习的日子</div><div class="stat-number">${days}<small>天</small></div></div><div class="stat"><div class="stat-label">已完成练习</div><div class="stat-number">${total}<small>个搭配回合</small></div></div><div class="stat"><div class="stat-label">无提示正确回忆</div><div class="stat-number">${independent}<small>不含自由表达自评</small></div></div></section>${state.active?'<div class="notice">还有一轮练习未完成。<button class="text-btn" data-start="daily">继续练习 →</button></div>':''}<div class="section-head"><h2>练习足迹</h2><small>最近的练习排在前面</small></div><div class="history-list">${state.sessions.length?[...state.sessions].reverse().slice(0,60).map(s=>`<div class="history-row"><div><strong>${esc(s.label||'每日练习')}</strong><br><small>${esc(s.day)} · 约 ${s.minutes} 分钟</small></div><div>${s.total} 个搭配<br><small>独立 ${s.independent} · 提示 ${s.hinted} · 再练 ${s.missed}${s.self?' · 表达自评 '+s.self:''}</small></div></div>`).join(''):'<div class="empty"><h2>你的第一步，留在这里。</h2><p>完成一轮练习后，就会看到真实记录。</p></div>'}</div>`;}
-function settings(){return intro('MAKE IT YOURS','按你的节奏，慢慢来。','新词可以少一点，练过的内容会按表现再次出现。')+`<div class="settings-grid"><section class="setting-card"><h3>自由练习</h3><label for="set-mode">练习方式</label><select id="set-mode"><option value="oral" ${state.settings.mode!=='spelling'?'selected':''}>想起 / 说出 · 不练拼写（默认）</option><option value="spelling" ${state.settings.mode==='spelling'?'selected':''}>输入拼写（可选）</option></select><label for="set-book">优先学习范围</label><select id="set-book">${bookOptions(state.settings.book)}</select><p>自由连续练习，不设每日数量上限。每小组结束后可继续下一组，也可以随时休息；分组只为了便于暂停。</p><button class="primary" id="save-settings">保存设置</button></section><section class="setting-card"><h3>进度与备份</h3><p>学习进度保存在当前设备的这个浏览器中。不同设备、不同浏览器及本地版与在线版之间不会自动同步。清理浏览器数据可能删除进度。</p><p>可以导出备份，在另一个设备导入继续练习。备份包含你的表达、收藏、复习记录和未完成的练习。</p><div class="button-row"><button class="secondary" id="export-data">导出备份</button><button class="secondary" id="import-data">导入备份</button></div><p>导入会先检查格式，再让你确认是否替换当前进度。</p></section><section class="setting-card"><h3>练习如何安排</h3><p>首次独立答对：约 1 天后；连续答对：约 3、7、14、30 天后。用了提示：约 6 小时后；答错或看答案：约 10 分钟后。</p><p>这些只是复习安排，不保证几天后一定掌握。默认先隐藏英文，用口头或心里回忆后自评；无需输入拼写。同一天重复练不会增加跨天等级。</p><p>发音使用浏览器的英语朗读功能，可在单词详情或答案反馈中点击试听；可用声音取决于设备。</p></section><section class="setting-card"><h3>词库来源与覆盖</h3><p>9389 个词条来自你提供的“全部前4700 / 全部后4700”；其中常用词表包含 7956 词条。词表范围只分“全部”和“常用”。</p><p>目前有 ${window.LESSONS.length} 个完整搭配：其中 ${window.BOOK_LESSONS.length} 个依据你提供的《雅思词汇真经》整理，保留书中搭配与纸书 / PDF 页码；练习例句由本站另行编写。另有 60 道听力和阅读资料的语境改写题，以及 86 个日常起步搭配；可自行补充。不是百词斩官方 3200 / 8639 版本，也不把日常场景标为官方 5000 词书。</p><p>一个词的不同搭配分别练习；相同搭配从不同页面进入，共享同一份记录。批量词库另使用 ECDICT 释义 / 词典短语和 WordNet 例句，保留许可与来源；词典收录不代表全部为日常高频。</p></section></div>`;}
+function settings(){return intro('MAKE IT YOURS','按你的节奏，慢慢来。','新词可以少一点，练过的内容会按表现再次出现。')+`<div class="settings-grid"><section class="setting-card"><h3>自由练习</h3><label for="set-mode">练习方式</label><select id="set-mode"><option value="oral" ${state.settings.mode!=='spelling'?'selected':''}>想起 / 说出 · 不练拼写（默认）</option><option value="spelling" ${state.settings.mode==='spelling'?'selected':''}>输入拼写（可选）</option></select><label for="set-book">优先学习范围</label><select id="set-book">${bookOptions(state.settings.book)}</select><p>自由连续练习，不设每日数量上限。每小组结束后可继续下一组，也可以随时休息；分组只为了便于暂停。</p><button class="primary" id="save-settings">保存设置</button></section><section class="setting-card"><h3>进度与备份</h3><p>学习进度保存在当前设备的这个浏览器中。不同设备、不同浏览器及本地版与在线版之间不会自动同步。清理浏览器数据可能删除进度。</p><p>可以导出备份，在另一个设备导入继续练习。备份包含你的表达、收藏、复习记录和未完成的练习。</p><div class="button-row"><button class="secondary" id="export-data">导出备份</button><button class="secondary" id="import-data">导入备份</button></div><p>导入会先检查格式，再让你确认是否替换当前进度。</p></section><section class="setting-card"><h3>练习如何安排</h3><p>首次独立答对：约 1 天后；连续答对：约 3、7、14、30 天后。用了提示：约 6 小时后；答错或看答案：约 10 分钟后。</p><p>这些只是复习安排，不保证几天后一定掌握。默认先隐藏英文，用口头或心里回忆后自评；无需输入拼写。同一天重复练不会增加跨天等级。</p><p>发音使用浏览器的英语朗读功能，可在单词详情或答案反馈中点击试听；可用声音取决于设备。</p></section><section class="setting-card"><h3>词库来源与覆盖</h3><p>9389 个词条来自你提供的“全部前4700 / 全部后4700”；其中常用词表包含 7956 词条。词表范围只分“全部”和“常用”。</p><p>目前有 ${window.LESSONS.length} 个完整搭配：其中 ${window.BOOK_LESSONS.length} 个依据你提供的《雅思词汇真经》整理，保留书中搭配与纸书 / PDF 页码；练习例句由本站另行编写。另有 60 道听力和阅读资料的语境改写题，以及 86 个日常起步搭配；可自行补充。不是百词斩官方 3200 / 8639 版本，也不把日常场景标为官方 5000 词书。</p><p>一个词的不同搭配分别练习；相同搭配从不同页面进入，共享同一份记录。批量词库另使用 ECDICT 释义 / 词典短语和 WordNet 例句，保留许可与来源；词典收录不代表全部为日常高频。</p><p>讲解、记忆线索与中英双语例句来自 <a href="https://github.com/ahpxex/open-dictionary" target="_blank" rel="noopener">Open Dictionary</a>（基于 English Wiktionary，数据许可 CC BY-SA 4.0）。填空与讲解只从这些来源取用，标注来源，不假装是本站原创。</p></section></div>`;}
 function start(mode='daily',specific=null){
  if(state.active){taskUI=state.active.ui||{hint:0,feedback:null,input:''};nav('practice');toast('接着上次的练习，可以随时暂停。');return;}
  let pool=allLessons(),label='自由场景练习',queue=[];
@@ -305,8 +305,17 @@ function usablePhrases(word){const forms=formsOf(word);
    return n>=2&&n<=5&&(p.zh.match(/[\u4e00-\u9fff]/g)||[]).length>=2&&
     forms.some(f=>f.length>1&&new RegExp('\\b'+escRe(f)+'\\b','i').test(p.en));});}
 
-// 四级回退：挑选该词最好的一个例子
+// 中文讲解与双语例句：来自 Open Dictionary（CC BY-SA 4.0）
+function zhOf(word){const Z=window.ZH_LEXICON||{};return Z[String(word).toLowerCase()]||null;}
+function zhExamples(word){const z=zhOf(word);if(!z)return [];return (z.ex||[]).filter(e=>e&&e.en);}
+function zhHook(word){const z=zhOf(word);return z?String(z.hook||''):'';}
+function zhGloss(word){const z=zhOf(word);if(!z||!z.pos||!z.pos.length)return '';return String(z.pos[0].gloss||'');}
+function zhExplain(word){const z=zhOf(word);if(!z||!z.pos)return [];return z.pos.filter(p=>p&&p.expl).map(p=>({pos:p.pos,expl:p.expl}));}
+
+// 四级回退：双语例句 > 手写搭配句 > WordNet 完整句 > 词典搭配 > WordNet 片段
 function bestExample(word){
+ const zx=zhExamples(word);
+ if(zx.length)return {type:'zh',en:zx[0].en,zh:zx[0].zh||''};
  const l=lessonOf(word);
  if(l)return {type:'lesson',en:l.sentence,zh:l.zh,phrase:l.phrase,tip:l.tip};
  const cs=completeSentences(word);
@@ -336,7 +345,14 @@ function quizPool(type){
  const words=practicedWords();
  if(type==='meaning')return words.filter(w=>!!shortMeaning(w));
  if(type==='phrase')return words.filter(w=>usablePhrases(w).length>0&&!!shortMeaning(w));
- return words.filter(w=>!!bestExample(w));}
+ const STOP=new Set(['art','prep','conj','pron','aux','modal','det','num','interj']);
+ return words.filter(w=>{if(!bestExample(w))return false;
+  if(STOP.has(posOf(w)))return false;
+  const ex=bestExample(w);const s0=String(ex&&ex.en||'');
+  const form=formIn(w,s0);if(!form)return false;
+  // 同一句里出现多次会挖出多个空，容易歧义
+  const hits=(s0.match(new RegExp('(?<![A-Za-z])'+escRe(form)+'(?![A-Za-z])','gi'))||[]).length;
+  return hits===1;});}
 
 
 function padOptions(word,opts){
@@ -374,23 +390,23 @@ function makeQuestion(type,word){
  const ex=bestExample(word);
  if(ex&&ex.type==='lesson'){
   const form=formIn(word,ex.sentence)||ex.phrase;
-  const sentence=ex.sentence.replace(new RegExp('(^|[^A-Za-z])'+escRe(form)+'([^A-Za-z]|$)','i'),(all,a,b)=>a+'________'+b);
+  const sentence=ex.sentence.replace(new RegExp('(?<![A-Za-z])'+escRe(form)+'(?![A-Za-z])','gi'),()=>'________');
   const opts=[{text:word,ok:true,owner:shortMeaning(word)}];
   for(const w2 of distractors(word,16)){if(opts.length>=4)break;
    if(opts.some(o=>o.text===w2))continue;if(formIn(w2,ex.sentence))continue;
    opts.push({text:w2,ok:false,owner:shortMeaning(w2)});}
   return {word,type:'cloze',kind:'use',sentence,zh:ex.zh,hint:shortMeaning(word),options:shuffleList(opts)};}
- if(ex&&ex.type==='sentence'){
+ if(ex&&(ex.type==='sentence'||ex.type==='zh')){
   const form=formIn(word,ex.en);
-  const sentence=ex.en.replace(new RegExp('(^|[^A-Za-z])'+escRe(form)+'([^A-Za-z]|$)','i'),(all,a,b)=>a+'________'+b);
+  const sentence=ex.en.replace(new RegExp('(?<![A-Za-z])'+escRe(form)+'(?![A-Za-z])','gi'),()=>'________');
   const opts=[{text:word,ok:true,owner:shortMeaning(word)}];
   for(const w2 of distractors(word,16)){if(opts.length>=4)break;
    if(opts.some(o=>o.text===w2))continue;if(formIn(w2,ex.en))continue;
    opts.push({text:w2,ok:false,owner:shortMeaning(w2)});}
-  return {word,type:'cloze',kind:'use',sentence,hint:shortMeaning(word),options:shuffleList(opts)};}
+  return {word,type:'cloze',kind:'use',sentence,zh:ex.zh||'',hint:shortMeaning(word),options:shuffleList(padOptions(word,opts))};}
  if(ex&&(ex.type==='phrase'||ex.type==='fragment')){
   const form=formIn(word,ex.en);
-  const shown=ex.en.replace(new RegExp('(^|[^A-Za-z])'+escRe(form)+'([^A-Za-z]|$)','i'),(all,a,b)=>a+'________'+b);
+  const shown=ex.en.replace(new RegExp('(?<![A-Za-z])'+escRe(form)+'(?![A-Za-z])','gi'),()=>'________');
   const opts=[{text:word,ok:true,owner:shortMeaning(word)}];
   for(const w2 of distractors(word,16)){if(opts.length>=4)break;
    if(opts.some(o=>o.text===w2))continue;if(formIn(w2,ex.en))continue;
@@ -411,24 +427,29 @@ function explainHtml(c,chosen){
   const cls=o.ok?'right':(o===c.options[chosen]?'wrong':'');
   let note='';
   if(c.type==='meaning')note=o.owner&&o.owner!==c.word?`（${esc(o.owner)}）`:`（${esc(c.word)}）`;
-  else if(c.type==='phrase')note=o.owner?`— ${esc(o.owner)}`:'';
   else note=o.owner?`— ${esc(o.owner)}`:'';
   return `<li class="${cls}">${esc(o.text)} <small>${note}</small></li>`;}).join('');
  const def=(e.definition||'').split('\n').filter(Boolean)[0];
  const phs=usablePhrases(c.word).slice(0,4);
  const ex=bestExample(c.word);
- const srcLabel={lesson:'手写搭配句',sentence:'WordNet 完整句',phrase:'词典搭配',fragment:'WordNet 例句片段'}[ex?.type]||'';
+ const srcLabel={zh:'Open Dictionary 双语例句',lesson:'手写搭配句',sentence:'WordNet 完整句',phrase:'词典搭配',fragment:'WordNet 片段'}[ex?.type]||'';
+ const hook=zhHook(c.word),gloss=zhGloss(c.word),expls=zhExplain(c.word),zex=zhExamples(c.word).slice(0,2);
+ const lesson=lessonOf(c.word);
  return `<div class="quiz-explain">
   <div class="explain-head">${c.options[chosen]&&c.options[chosen].ok?'✓ 答对了':'✗ 正确答案：'+esc(right.text||'')}</div>
   <div class="explain-section"><span class="explain-label">四个选项对照</span><ul class="explain-options">${rows}</ul></div>
   <div class="explain-section"><span class="explain-label">${esc(c.word)} 这个词</span>
-   <p class="explain-line"><strong>释义</strong>：${esc(shortMeaning(c.word)||'词形待核对')}</p>
+   <p class="explain-line"><strong>释义</strong>：${esc(shortMeaning(c.word)||'词形待核对')}${gloss?'（'+esc(gloss)+'）':''}</p>
    ${def?`<p class="explain-line"><strong>英文释义</strong>：${esc(def)}</p>`:''}
-   ${phs.length?`<p class="explain-line"><strong>常见搭配</strong>：${phs.map(p=>esc(p.en)+'（'+esc(p.zh)+'）').join('；')}</p>`:'<p class="explain-line"><strong>常见搭配</strong>：词库暂无</p>'}
-   ${ex?`<p class="explain-line"><strong>例句</strong>：${esc(ex.en)}${ex.zh?'<br>'+esc(ex.zh):''} <small class="src">（${esc(srcLabel)}）</small></p>`:''}
-   ${ex&&ex.tip?`<p class="explain-line"><strong>用法</strong>：${esc(ex.tip)}</p>`:''}
+   ${hook?`<p class="explain-line"><strong>记忆线索</strong>：${esc(hook)}</p>`:''}
+   ${expls.length?expls.map(x=>`<p class="explain-line"><strong>${esc(x.pos)} 用法</strong>：${esc(x.expl)}</p>`).join(''):''}
+   ${phs.length?`<p class="explain-line"><strong>常见搭配</strong>：${phs.map(p=>esc(p.en)+'（'+esc(p.zh)+'）').join('；')}</p>`:''}
+   ${zex.length?`<p class="explain-line"><strong>例句</strong>：${zex.map(x=>esc(x.en)+(x.zh?'（'+esc(x.zh)+'）':'')).join('<br>')}</p>`:(ex?`<p class="explain-line"><strong>例句</strong>：${esc(ex.en)}${ex.zh?'（'+esc(ex.zh)+'）':''}</p>`:'')}
+   ${lesson&&lesson.tip?`<p class="explain-line"><strong>用法提示</strong>：${esc(lesson.tip)}</p>`:''}
+   ${ex?`<p class="explain-line"><small class="src">例句来源：${esc(srcLabel)}</small></p>`:''}
   </div>
   ${c.sentence&&c.zh?`<div class="explain-section"><span class="explain-label">整句意思</span><p class="explain-line">${esc(c.sentence.replace('________',c.word))}<br>${esc(c.zh)}</p></div>`:''}
+  <div class="explain-section"><p class="explain-line"><small class="src">讲解与双语例句来自 Open Dictionary（基于 Wiktionary，CC BY-SA 4.0）</small></p></div>
  </div>`;}
 
 function noteQuiz(word,kind,ok){const q=quizMap(),r=q[word]||(q[word]={see:{ok:0,bad:0},use:{ok:0,bad:0}});
