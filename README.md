@@ -74,8 +74,46 @@ exam-lessons.js       听力 / 阅读语境练习
 source-materials.js   来源资料与页码映射
 licenses/             第三方数据许可原文
 docs/                 README 预览图
-serve.cjs             本地静态服务器（零依赖）
+serve.cjs             本地静态服务器（零依赖，node serve.cjs）
+tools/                数据管线与自检脚本（详见 tools/README.md）
 ```
+
+## 源码、数据管线与自检
+
+仓库同时包含**站点成品**和**生成它的脚本**（在 `tools/`）。
+
+```
+用户提供的资料 ──import-materials.py──→ source-materials.js
+catalog.js ─────build-enrichment.py────→ enrichment.js（ECDICT + WordNet 合成）
+            └── verify.cjs ────────────→ 自检报告（不产出文件）
+            └── package-local.py ──────→ 单文件 HTML + 部署 ZIP
+```
+
+自检会在 Node 的 `vm` 里**真实启动一次 `app.js`**，用假 DOM 驱动完整学习流程：
+
+```bash
+node tools/verify.cjs
+```
+
+实测输出：
+
+```json
+{
+  "catalog": 9389,
+  "lessons": 395,
+  "variants": 69,
+  "checks": "catalog integrity, exact targets, recall scheduling, day separation,
+             self assessment separation, reload persistence, hint retention,
+             backup validation, HTML escaping: passed"
+}
+```
+
+断言覆盖：词库完整性、例句必须真的包含目标搭配、间隔算法（1/3/7/14/30 天）、
+同日重复不加等级、自评不计入客观回忆、刷新后保留提示与反馈、非法备份被拒绝、
+用户内容 HTML 转义、30 天计划每天 312–313 词且不重复。
+
+细节见 [tools/README.md](tools/README.md)。原始输入（ECDICT 词库、WordNet、教材 PDF）不随仓库分发。
+
 
 ## 本地运行
 

@@ -1,0 +1,21 @@
+{
+  "be": {
+    "meaning": "v. 是；处于某种状态；在某处；存在\naux. 与 -ing 构成进行时；与过去分词构成被动语态",
+    "senses": [
+      {"en":"Connect a person or thing with who they are or what they are like.","zh":"说明身份或状态：是谁、是什么样。","example":"My sister is a teacher. I am tired.","translation":"我姐姐是老师。我累了。"},
+      {"en":"Say where someone or something is, or that something exists.","zh":"表示位置或存在。","example":"The keys are on the desk. There is a café nearby.","translation":"钥匙在桌上。附近有一家咖啡馆。"},
+      {"en":"Work with an -ing form to describe an action in progress.","zh":"be + doing：构成进行时。","example":"I am waiting for the bus.","translation":"我正在等公交车。"},
+      {"en":"Work with a past participle to form the passive.","zh":"be + 过去分词：构成被动语态。","example":"The room is cleaned every day.","translation":"这个房间每天都有人打扫。"}
+    ],
+    "patterns":[{"en":"be interested in something","zh":"对某事感兴趣"},{"en":"be good at something","zh":"擅长某事"},{"en":"be ready to do something","zh":"准备好做某事"}],
+    "note":"be 的变化形式包括 am、is、are、was、were、been、being。中文不一定都翻译成“是”：I am tired 是“我累了”。专业缩写 BE 与这个动词要分开学。"
+  },
+  "can":{"meaning":"modal. 能；会；可以\nn. 罐；罐头\nv. 把食物装罐保存","senses":[{"en":"Show that someone is able or allowed to do something, or that something is possible.","zh":"表示能力、许可或可能性。","example":"I can help. Can I sit here?","translation":"我能帮忙。我可以坐这里吗？"},{"en":"A metal container for food or drink.","zh":"名词：装食品或饮料的金属罐。","example":"I bought a can of soup.","translation":"我买了一罐汤。"}],"patterns":[{"en":"can + 动词原形","zh":"能 / 可以做某事"},{"en":"a can of soup","zh":"一罐汤"}]},
+  "it":{"meaning":"pron. 它；指前面提到的事物或情况\npron. 用作谈论天气、时间、距离等时的主语","senses":[{"en":"Refer to a thing, animal, situation or idea already mentioned.","zh":"指已提到的事物、动物、情况或想法。","example":"I bought a notebook. It is blue.","translation":"我买了一本笔记本。它是蓝色的。"},{"en":"Act as the subject when talking about time, weather or distance.","zh":"谈时间、天气、距离时作主语，通常不译成“它”。","example":"It is raining. It is almost six.","translation":"下雨了。快六点了。"}],"note":"IT 表示信息技术时是缩写，不是代词 it 的另一个常用意思。"},
+  "us":{"meaning":"pron. 我们（宾格）","senses":[{"en":"Refer to the speaker and one or more other people as the object of a verb or preposition.","zh":"作动词或介词的宾语，指“我们”。","example":"Could you help us? Come with us.","translation":"你能帮帮我们吗？和我们一起来吧。"}],"note":"US / U.S. 表示美国，是另一种写法和用法。不要把它作为代词 us 来背。"},
+  "as":{"meaning":"prep. 作为；以……身份\nconj. 当……时；因为；按照\nadv. 用于 as ... as 比较结构","senses":[{"en":"Introduce a person's role, a reason, a time, or the way something happens.","zh":"根据句子表示身份、原因、时间或方式。","example":"She works as a nurse. Do as I say.","translation":"她是一名护士。照我说的做。"}],"patterns":[{"en":"work as a nurse","zh":"担任护士"},{"en":"as soon as possible","zh":"尽快"},{"en":"as ... as ...","zh":"和……一样……"}],"note":"化学符号 As 表示砷，与普通词 as 分开。"},
+  "at":{"meaning":"prep. 在（某个地点或时间点）；朝；以某种状态或速度","senses":[{"en":"Point to a particular place, time, target or activity.","zh":"把注意力指向具体的地点、时间点、对象或活动。","example":"Meet me at the station at six.","translation":"六点在车站和我见面。"}],"patterns":[{"en":"at six o’clock","zh":"在六点"},{"en":"at the station","zh":"在车站"},{"en":"good at something","zh":"擅长某事"}]},
+  "in":{"meaning":"prep. 在……里面；在某段时间内；穿着；使用某种语言\nadv. 在里面；进入","senses":[{"en":"Place something inside a space, a period of time, a situation or a group.","zh":"表示在空间、时间段、情况或群体之中。","example":"The book is in my bag. I moved here in July.","translation":"书在我包里。我七月搬到了这里。"}],"patterns":[{"en":"in the morning","zh":"在早上"},{"en":"in English","zh":"用英语"},{"en":"in a hurry","zh":"匆忙地"}]},
+  "on":{"meaning":"prep. 在……上面；在某一天；关于；通过某种设备或媒介\nadv. 继续；处于开启状态","senses":[{"en":"Show contact with a surface, a particular day, or the use of a device or service.","zh":"表示接触表面、具体某天，或使用设备、服务等。","example":"The cup is on the table. Call me on Monday.","translation":"杯子在桌上。星期一给我打电话。"}],"patterns":[{"en":"on Monday","zh":"在星期一"},{"en":"on the phone","zh":"在通电话"},{"en":"turn on the light","zh":"开灯"}]},
+  "may":{"meaning":"modal. 可能；可以（用于较正式的许可或请求）\nn. May：五月","senses":[{"en":"Show that something is possible, or ask for or give permission formally.","zh":"表示可能性，或较正式地请求、给予许可。","example":"It may rain. May I ask a question?","translation":"可能会下雨。我可以问一个问题吗？"}],"note":"表示月份时写作 May；may + 动词原形表示可能或许可。"}
+}
