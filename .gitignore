@@ -1,0 +1,9 @@
+node_modules/
+.sites-runtime/
+.sites-checkout/
+*.tar.gz
+*.zip
+tmp/
+*.pdf
+.DS_Store
+Thumbs.db
