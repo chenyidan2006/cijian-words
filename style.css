@@ -42,3 +42,54 @@
 .explain-line{font-size:12.5px;line-height:1.85;color:#4f5f50;margin:6px 0}
 .explain-line strong{color:var(--ink);font-weight:600;margin-right:2px}
 .explain-line small.src{color:var(--muted)}
+
+/* 移动端：词库/搭配列表改为两行堆叠，避免固定列挤压溢出 */
+@media(max-width:850px){
+ .word-row{grid-template-columns:1fr auto;gap:6px 12px;padding:15px 17px;align-items:start}
+ .word-row>*{min-width:0}
+ .word-row>div:first-child{grid-column:1;grid-row:1}
+ .word-row>button{grid-column:2;grid-row:1;justify-self:end;align-self:start}
+ .word-row>div:nth-child(2){grid-column:1/-1;grid-row:2;overflow-wrap:anywhere;line-height:1.7}
+ .word-row>div:nth-child(3){grid-column:1/-1;grid-row:3;margin-top:2px}
+ .word-row .word{font-size:18px}
+ .word-row .sub{font-size:10px}
+ .word-row .meaning{font-size:12px}
+}
+@media(max-width:420px){
+ .word-row{grid-template-columns:1fr;gap:6px;padding:14px}
+ .word-row>button{grid-column:1;grid-row:auto;justify-self:start;margin-top:4px}
+ .word-row>div:first-child,.word-row>div:nth-child(2),.word-row>div:nth-child(3){grid-column:1;grid-row:auto}
+}
+/* 兜底：任何长单词/长短语都不撑破容器 */
+.word-row,.word-row div,.word-row .word,.word-row .meaning{overflow-wrap:anywhere}
+.word-list{max-width:100%}
+
+
+/* 移动端：筛选栏改为单列，控件可收缩，避免右侧被切 */
+@media(max-width:850px){
+ .filterbar{display:grid;grid-template-columns:1fr;gap:10px;margin:16px 0}
+ .filterbar>*{width:100%;min-width:0;max-width:100%}
+ .filterbar input,.filterbar select{width:100%;min-width:0;max-width:100%}
+ .filterbar button{justify-self:stretch;text-align:center}
+ .library-summary{flex-wrap:wrap;gap:12px}
+ .tabs{gap:8px}
+ .tabs .chip{font-size:11px;padding:6px 12px}
+}
+
+
+/* 移动端：标签行强制换行 */
+@media(max-width:850px){
+ .tabs{display:flex;flex-wrap:wrap;gap:8px;overflow:visible;max-width:100%}
+ .tabs .chip{white-space:normal;max-width:100%;min-width:0;flex:0 0 auto;line-height:1.5}
+}
+
+
+/* 移动端：约束主要容器宽度，避免整页被撑宽 */
+@media(max-width:850px){
+ html,body{max-width:100%;overflow-x:hidden}
+ .shell{grid-template-columns:minmax(0,1fr);max-width:100vw}
+ .main{min-width:0;max-width:100%;overflow-x:clip}
+ .main>*{min-width:0;max-width:100%}
+ .practice-wrap,.exercise,.setting-card,.word-list,.library-summary,.tabs{min-width:0;max-width:100%}
+ .tabs{flex-wrap:wrap}
+}
