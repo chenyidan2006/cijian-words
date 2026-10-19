@@ -93,3 +93,6 @@
  .practice-wrap,.exercise,.setting-card,.word-list,.library-summary,.tabs{min-width:0;max-width:100%}
  .tabs{flex-wrap:wrap}
 }
+
+/* Seven-week optional workflow */
+.sprint-settings{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:20px 0}.sprint-settings label{display:grid;gap:8px}.sprint-table-wrap{overflow-x:auto}.sprint-table{width:100%;border-collapse:collapse;text-align:left;font-size:14px}.sprint-table th,.sprint-table td{padding:12px;border-bottom:1px solid #d9dfd3;min-width:100px}.setting-card details{padding:14px 0}.setting-card summary{cursor:pointer}.setting-card p{line-height:1.8}.exercise label{display:block;margin:16px 0 8px}.exercise select{max-width:100%}.exercise textarea{width:100%;box-sizing:border-box}.exercise .feedback p{white-space:pre-wrap;overflow-wrap:anywhere}.sprint-settings .field{width:100%;box-sizing:border-box}@media(max-width:700px){.sprint-settings{grid-template-columns:1fr 1fr}.month-banner{flex-wrap:wrap;gap:18px}}@media(max-width:400px){.sprint-settings{grid-template-columns:1fr}}
